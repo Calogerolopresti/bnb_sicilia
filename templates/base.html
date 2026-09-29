@@ -2,12 +2,13 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
     <title>{% block titolo %}Gestionale B&B Sicilia{% endblock %}</title>
     <!-- Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;0,900;1,500;1,600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CDN CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -15,49 +16,99 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+{% set path = request.path %}
+{% if path == '/' %}{% set sezione = 'dashboard' %}
+{% elif path.startswith('/camere') or path.startswith('/prenota') %}{% set sezione = 'camere' %}
+{% elif path.startswith('/soggiorn') %}{% set sezione = 'soggiorni' %}
+{% else %}{% set sezione = '' %}{% endif %}
 
-    <!-- NAVBAR PRINCIPALE -->
-    <nav class="navbar navbar-expand-lg navbar-dark site-navbar mb-4">
-        <div class="container">
-            <a class="navbar-brand" href="/"><i class="bi bi-house-heart"></i> B&amp;B Sicilia</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <div class="navbar-nav ms-auto">
-                    <a class="nav-link" href="/"><i class="bi bi-speedometer2"></i> Dashboard</a>
-                    <a class="nav-link" href="/camere"><i class="bi bi-door-open"></i> Camere</a>
-                    <a class="nav-link" href="/soggiorni"><i class="bi bi-calendar-check"></i> Soggiorni</a>
-                </div>
-            </div>
+{% macro logo(size=32) %}
+<svg class="brand-mark" width="{{ size }}" height="{{ size }}" viewBox="0 0 32 32" aria-hidden="true">
+    <rect width="32" height="32" rx="8" fill="#2346c8"/>
+    <path d="M16 5.5c2.9 3.3 2.9 7.2 0 10.5-2.9-3.3-2.9-7.2 0-10.5Zm0 21c-2.9-3.3-2.9-7.2 0-10.5 2.9 3.3 2.9 7.2 0 10.5ZM5.5 16c3.3-2.9 7.2-2.9 10.5 0-3.3 2.9-7.2 2.9-10.5 0Zm21 0c-3.3 2.9-7.2 2.9-10.5 0 3.3-2.9 7.2-2.9 10.5 0Z" fill="#f4c542"/>
+    <circle cx="16" cy="16" r="2.2" fill="#fff"/>
+</svg>
+{% endmacro %}
+
+    <!-- SIDEBAR (desktop) -->
+    <aside class="app-sidebar">
+        <a href="/" class="brand">
+            {{ logo(34) }}
+            <span class="brand-text"><strong>B&amp;B Sicilia</strong><small>Gestionale struttura</small></span>
+        </a>
+        <nav class="side-nav" aria-label="Menu principale">
+            <span class="side-label">Menu</span>
+            <a class="side-link {% if sezione == 'dashboard' %}is-active{% endif %}" href="/" {% if sezione == 'dashboard' %}aria-current="page"{% endif %}><i class="bi bi-grid-1x2"></i> Dashboard</a>
+            <a class="side-link {% if sezione == 'camere' %}is-active{% endif %}" href="/camere" {% if sezione == 'camere' %}aria-current="page"{% endif %}><i class="bi bi-door-open"></i> Camere</a>
+            <a class="side-link {% if sezione == 'soggiorni' %}is-active{% endif %}" href="/soggiorni" {% if sezione == 'soggiorni' %}aria-current="page"{% endif %}><i class="bi bi-calendar2-week"></i> Soggiorni</a>
+        </nav>
+        <div class="side-today">
+            <span class="side-label">Oggi</span>
+            <strong data-oggi></strong>
         </div>
+    </aside>
+
+    <!-- TOP BAR (mobile) -->
+    <header class="app-topbar">
+        <a href="/" class="brand">
+            {{ logo(30) }}
+            <span class="brand-text"><strong>B&amp;B Sicilia</strong></span>
+        </a>
+        <span class="topbar-date" data-oggi-breve></span>
+    </header>
+
+    <main class="app-main">
+        <div class="app-content">
+            <!-- MESSAGGI FLASH -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  {% set cat = category if category != 'error' else 'danger' %}
+                  <div class="alert alert-{{ cat }} alert-dismissible fade show flash" role="alert">
+                    <i class="bi {% if cat == 'success' %}bi-check-circle-fill{% elif cat == 'warning' %}bi-exclamation-triangle-fill{% else %}bi-x-octagon-fill{% endif %}"></i>
+                    <div>{{ message }}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Chiudi"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <!-- CONTENUTO PRINCIPALE DELLE PAGINE -->
+            {% block contenuto %}{% endblock %}
+
+            <footer class="app-footer">
+                Gestionale B&B Sicilia &copy; Progetto sviluppato per il corso di Programmazione 2, Versioning & DataManagement
+            </footer>
+        </div>
+    </main>
+
+    <!-- TAB BAR (mobile) -->
+    <nav class="app-tabbar" aria-label="Navigazione principale">
+        <a href="/" class="tab {% if sezione == 'dashboard' %}is-active{% endif %}"><i class="bi {{ 'bi-grid-1x2-fill' if sezione == 'dashboard' else 'bi-grid-1x2' }}"></i><span>Dashboard</span></a>
+        <a href="/camere" class="tab {% if sezione == 'camere' %}is-active{% endif %}"><i class="bi {{ 'bi-door-open-fill' if sezione == 'camere' else 'bi-door-open' }}"></i><span>Camere</span></a>
+        <a href="/soggiorni" class="tab {% if sezione == 'soggiorni' %}is-active{% endif %}"><i class="bi {{ 'bi-calendar2-week-fill' if sezione == 'soggiorni' else 'bi-calendar2-week' }}"></i><span>Soggiorni</span></a>
     </nav>
-
-    <!-- CONTENITORE MESSAGGI FLASH -->
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <!-- CONTENUTO PRINCIPALE DELLE PAGINE Andiamo a inserire in mezzo a block contenuto e end block il contenuto della pagina-->
-        {% block contenuto %}{% endblock %}
-    </div>
-
-    <!-- FOOTER -->
-    <footer class="site-footer text-center py-4 mt-5">
-        <div class="container">
-            <small><i class="bi bi-house-heart-fill text-danger"></i> Gestionale B&B Sicilia &copy; Progetto sviluppato per il corso di Programmazione 2, Versioning & DataManagement</small>
-        </div>
-    </footer>
 
     <!-- Bootstrap 5 JS Bundle con Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            var oggi = new Date();
+            document.querySelectorAll('[data-oggi]').forEach(function (el) {
+                el.textContent = oggi.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+            });
+            document.querySelectorAll('[data-oggi-breve]').forEach(function (el) {
+                el.textContent = oggi.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
+            });
+            // Chiede conferma prima delle azioni difficili da annullare
+            document.addEventListener('click', function (e) {
+                var el = e.target.closest('[data-confirm]');
+                if (el && !window.confirm(el.getAttribute('data-confirm'))) {
+                    e.preventDefault();
+                }
+            });
+        })();
+    </script>
+    {% block script %}{% endblock %}
 </body>
 </html>
