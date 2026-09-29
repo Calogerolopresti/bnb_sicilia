@@ -2,46 +2,115 @@
 {% block titolo %}Camere - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
-<div class="page-head">
-    <h2><i class="bi bi-door-open"></i> Stato Camere</h2>
-    <p>{{ camere|length }} camere in struttura &mdash; aggiorna lo stato o apri una nuova prenotazione.</p>
+{% set etichette = {'libera': 'Libera', 'occupata': 'Occupata', 'pulizia': 'In pulizia'} %}
+
+<header class="page-header">
+    <div>
+        <p class="eyebrow">Struttura</p>
+        <h1 class="page-title">Camere</h1>
+        <p class="page-sub">Aggiorna lo stato delle camere o apri una nuova prenotazione.</p>
+    </div>
+</header>
+
+<div class="toolbar">
+    <div class="seg" aria-label="Filtra le camere per stato">
+        <button type="button" class="seg-item is-active" data-filtro="tutte" aria-pressed="true">
+            Tutte <span class="seg-count">{{ camere|length }}</span>
+        </button>
+        {% for st in ['libera', 'occupata', 'pulizia'] %}
+        <button type="button" class="seg-item" data-filtro="{{ st }}" aria-pressed="false">
+            <span class="dot dot--{{ st }}"></span> {{ etichette[st] }}
+            <span class="seg-count">{{ camere|selectattr('stato', 'equalto', st)|list|length }}</span>
+        </button>
+        {% endfor %}
+    </div>
 </div>
 
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+<div class="room-grid">
     {% for c in camere %}
-    <div class="col">
-        <div class="room-card" style="animation-delay: {{ loop.index0 * 0.04 }}s;">
-            <div class="room-card__top">
-                <div>
-                    <div class="room-card__numero">{{ c.numero }}</div>
-                    <div class="room-card__nome">{{ c.nome }}</div>
-                </div>
-                {% if c.stato == 'libera' %}
-                    <span class="status-chip status-chip--libera"><i class="bi bi-door-open-fill"></i> Libera</span>
-                {% elif c.stato == 'occupata' %}
-                    <span class="status-chip status-chip--occupata"><i class="bi bi-door-closed-fill"></i> Occupata</span>
-                {% else %}
-                    <span class="status-chip status-chip--pulizia"><i class="bi bi-stars"></i> Pulizia</span>
-                {% endif %}
+    <article class="room" data-stato="{{ c.stato }}">
+        <div class="room-head">
+            <div>
+                <span class="room-num">{{ c.numero }}</span>
+                <h2 class="room-name">{{ c.nome }}</h2>
             </div>
+            <span class="chip chip--{{ c.stato }}">{{ etichette[c.stato] }}</span>
+        </div>
 
-            <div class="room-card__meta"><i class="bi bi-people-fill"></i> {{ c.tipo }} &middot; {{ c.posti }} posti</div>
+        <dl class="room-facts">
+            <div>
+                <dt>Tipo</dt>
+                <dd>{{ c.tipo }}</dd>
+            </div>
+            <div>
+                <dt>Posti</dt>
+                <dd><i class="bi bi-person"></i> {{ c.posti }}</dd>
+            </div>
+            <div>
+                <dt>Notte</dt>
+                <dd><span class="mono">€{{ "%.2f"|format(c.prezzo_notte) }}</span></dd>
+            </div>
+        </dl>
 
-            <div class="room-card__prezzo">€ {{ "%.2f"|format(c.prezzo_notte) }} <small>/ notte</small></div>
+        <a href="/prenota/{{ c.id_camera }}" class="btn btn-brand w-100">
+            <i class="bi bi-calendar-plus"></i>
+            {% if c.stato == 'libera' %}Prenota{% else %}Prenota per altre date{% endif %}
+        </a>
 
-            <div class="room-card__actions">
-                <div class="btn-group btn-group-sm" role="group">
-                    <a href="/camere/stato/{{ c.id_camera }}/libera" class="btn btn-outline-success" title="Segna come libera">Libera</a>
-                    <a href="/camere/stato/{{ c.id_camera }}/occupata" class="btn btn-outline-danger" title="Segna come occupata">Occupata</a>
-                    <a href="/camere/stato/{{ c.id_camera }}/pulizia" class="btn btn-outline-warning" title="Segna in pulizia">Pulizia</a>
-                </div>
-                <a href="/prenota/{{ c.id_camera }}" class="btn btn-sm btn-primary w-100">
-                    <i class="bi bi-calendar-plus"></i>
-                    {% if c.stato == 'libera' %}Prenota{% else %}Prenota per altre date{% endif %}
-                </a>
+        <div class="state-switch">
+            <span class="state-label">Cambia stato</span>
+            <div class="state-options" role="group" aria-label="Stato della camera {{ c.numero }}">
+                {% for st, label in [('libera', 'Libera'), ('occupata', 'Occupata'), ('pulizia', 'Pulizia')] %}
+                    {% if c.stato == st %}
+                    <span class="state-opt state-opt--{{ st }} is-current" aria-current="true">{{ label }}</span>
+                    {% else %}
+                    <a href="/camere/stato/{{ c.id_camera }}/{{ st }}" class="state-opt state-opt--{{ st }}"
+                       {% if st == 'libera' %}data-confirm="Segnare la camera {{ c.numero }} come libera? Un eventuale soggiorno in corso oggi verrà annullato."{% endif %}>{{ label }}</a>
+                    {% endif %}
+                {% endfor %}
             </div>
         </div>
-    </div>
+    </article>
     {% endfor %}
 </div>
+
+<div class="panel empty" data-vuoto hidden>
+    <i class="bi bi-door-closed"></i>
+    <p>Nessuna camera in questo stato.</p>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    (function () {
+        var pulsanti = document.querySelectorAll('[data-filtro]');
+        var camere = document.querySelectorAll('.room[data-stato]');
+        var vuoto = document.querySelector('[data-vuoto]');
+
+        function filtra(stato) {
+            var visibili = 0;
+            camere.forEach(function (c) {
+                var mostra = stato === 'tutte' || c.dataset.stato === stato;
+                c.hidden = !mostra;
+                if (mostra) visibili++;
+            });
+            pulsanti.forEach(function (p) {
+                var attivo = p.dataset.filtro === stato;
+                p.classList.toggle('is-active', attivo);
+                p.setAttribute('aria-pressed', attivo);
+            });
+            vuoto.hidden = visibili > 0;
+        }
+
+        pulsanti.forEach(function (p) {
+            p.addEventListener('click', function () {
+                filtra(p.dataset.filtro);
+                history.replaceState(null, '', p.dataset.filtro === 'tutte' ? location.pathname : '#' + p.dataset.filtro);
+            });
+        });
+
+        var iniziale = location.hash.slice(1);
+        if (['libera', 'occupata', 'pulizia'].indexOf(iniziale) !== -1) filtra(iniziale);
+    })();
+</script>
 {% endblock %}
