@@ -2,103 +2,132 @@
 {% block titolo %}Dashboard - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
-<div class="page-head">
-    <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
-    <p>Colpo d'occhio sulla giornata del B&amp;B: camere, arrivi e partenze.</p>
-</div>
+{% set tot = totali.libera + totali.occupata + totali.pulizia %}
+{% set occupazione = ((totali.occupata / tot) * 100)|round|int if tot else 0 %}
 
-<!-- CARDS RIGHI CONTATORI -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-4">
-        <div class="stat-tile fade-in" style="--accent: var(--sage);">
-            <div class="stat-tile__icon"><i class="bi bi-door-open-fill"></i></div>
-            <div>
-                <div class="stat-tile__num">{{ totali.libera }}</div>
-                <div class="stat-tile__label">Libere</div>
-            </div>
-        </div>
+<header class="page-header">
+    <div>
+        <p class="eyebrow" data-oggi></p>
+        <h1 class="page-title">Panoramica di oggi</h1>
+        <p class="page-sub">
+            {{ arrivi|length }} {{ 'arrivo' if arrivi|length == 1 else 'arrivi' }} e
+            {{ partenze|length }} {{ 'partenza' if partenze|length == 1 else 'partenze' }} da gestire.
+        </p>
     </div>
-    <div class="col-6 col-md-4">
-        <div class="stat-tile fade-in" style="--accent: var(--brick); animation-delay: .05s;">
-            <div class="stat-tile__icon"><i class="bi bi-door-closed-fill"></i></div>
-            <div>
-                <div class="stat-tile__num">{{ totali.occupata }}</div>
-                <div class="stat-tile__label">Occupate</div>
-            </div>
-        </div>
+    <div class="page-actions">
+        <a href="/soggiorni" class="btn btn-ghost"><i class="bi bi-calendar2-week"></i> Soggiorni</a>
+        <a href="/camere" class="btn btn-brand"><i class="bi bi-plus-lg"></i> Nuova prenotazione</a>
     </div>
-    <div class="col-12 col-md-4">
-        <div class="stat-tile fade-in" style="--accent: var(--ochre); animation-delay: .1s;">
-            <div class="stat-tile__icon"><i class="bi bi-stars"></i></div>
-            <div>
-                <div class="stat-tile__num">{{ totali.pulizia }}</div>
-                <div class="stat-tile__label">In pulizia</div>
-            </div>
-        </div>
-    </div>
-</div>
+</header>
 
-<div class="row g-4">
+<!-- STATO DELLE CAMERE -->
+<section class="panel mb-3 mb-lg-4">
+    <div class="panel-body">
+        <div class="occ-head">
+            <div>
+                <h2 class="panel-title">Stato delle camere</h2>
+                <p class="panel-sub">{{ tot }} camere in struttura</p>
+            </div>
+            <div class="occ-rate"><span class="mono">{{ occupazione }}%</span> occupazione</div>
+        </div>
+
+        <div class="occ-bar" role="img" aria-label="{{ totali.libera }} libere, {{ totali.occupata }} occupate, {{ totali.pulizia }} in pulizia">
+            {% if tot %}
+            {% if totali.libera %}<span class="occ--libera" style="width: {{ (totali.libera / tot * 100)|round(2) }}%"></span>{% endif %}
+            {% if totali.occupata %}<span class="occ--occupata" style="width: {{ (totali.occupata / tot * 100)|round(2) }}%"></span>{% endif %}
+            {% if totali.pulizia %}<span class="occ--pulizia" style="width: {{ (totali.pulizia / tot * 100)|round(2) }}%"></span>{% endif %}
+            {% endif %}
+        </div>
+
+        <div class="kpi-grid">
+            <a href="/camere#libera" class="kpi">
+                <span class="kpi-label"><span class="dot dot--libera"></span> Libere</span>
+                <span class="kpi-value">{{ totali.libera }}</span>
+                <i class="bi bi-arrow-up-right kpi-go"></i>
+            </a>
+            <a href="/camere#occupata" class="kpi">
+                <span class="kpi-label"><span class="dot dot--occupata"></span> Occupate</span>
+                <span class="kpi-value">{{ totali.occupata }}</span>
+                <i class="bi bi-arrow-up-right kpi-go"></i>
+            </a>
+            <a href="/camere#pulizia" class="kpi">
+                <span class="kpi-label"><span class="dot dot--pulizia"></span> In pulizia</span>
+                <span class="kpi-value">{{ totali.pulizia }}</span>
+                <i class="bi bi-arrow-up-right kpi-go"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+<div class="row g-3 g-lg-4">
     <!-- ARRIVI DI OGGI -->
-    <div class="col-md-6">
-        <div class="agenda-card h-100">
-            <div class="card-header bg-white fw-bold" style="color: var(--sage);">
-                <i class="bi bi-box-arrow-in-right"></i> Arrivi previsti per oggi
+    <div class="col-lg-6">
+        <section class="panel h-100">
+            <header class="panel-head">
+                <div class="panel-head-title">
+                    <span class="icon-badge icon-badge--ok"><i class="bi bi-box-arrow-in-right"></i></span>
+                    <div>
+                        <h2 class="panel-title">Arrivi di oggi</h2>
+                        <p class="panel-sub">Ospiti da accogliere con il check-in</p>
+                    </div>
+                </div>
+                <span class="count">{{ arrivi|length }}</span>
+            </header>
+            {% if arrivi %}
+            <ul class="task-list">
+                {% for a in arrivi %}
+                <li class="task">
+                    <span class="avatar">{{ a.nome_ospite[0] }}{{ a.cognome_ospite[0] }}</span>
+                    <div class="task-main">
+                        <a href="/soggiorno/{{ a.id_soggiorno }}" class="task-title">{{ a.nome_ospite }} {{ a.cognome_ospite }}</a>
+                        <span class="task-meta">Camera <span class="mono">{{ a.numero_camera }}</span> · {{ a.nome_camera }} · fino al {{ a.data_checkout.strftime('%d/%m') }}</span>
+                    </div>
+                    <a href="/soggiorni/stato/{{ a.id_soggiorno }}/check_in" class="btn btn-sm btn-ok"><i class="bi bi-check2"></i> Check-in</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="empty">
+                <i class="bi bi-cup-hot"></i>
+                <p>Nessun arrivo previsto per oggi.</p>
             </div>
-            <div class="card-body p-0">
-                {% if arrivi %}
-                <ul class="list-group list-group-flush">
-                    {% for a in arrivi %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="agenda-avatar">{{ a.nome_ospite[0] }}{{ a.cognome_ospite[0] }}</div>
-                            <div>
-                                <strong>{{ a.nome_ospite }} {{ a.cognome_ospite }}</strong><br>
-                                <small class="text-muted">{{ a.numero_camera }} - {{ a.nome_camera }}</small>
-                            </div>
-                        </div>
-                        <a href="/soggiorni/stato/{{ a.id_soggiorno }}/check_in" class="btn btn-sm btn-outline-success">
-                            Check-in
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p class="p-3 text-muted m-0"><i class="bi bi-moon-stars me-1"></i> Nessun arrivo previsto per oggi.</p>
-                {% endif %}
-            </div>
-        </div>
+            {% endif %}
+        </section>
     </div>
 
     <!-- PARTENZE DI OGGI -->
-    <div class="col-md-6">
-        <div class="agenda-card h-100">
-            <div class="card-header bg-white fw-bold" style="color: var(--brick);">
-                <i class="bi bi-box-arrow-right"></i> Partenze previste per oggi
+    <div class="col-lg-6">
+        <section class="panel h-100">
+            <header class="panel-head">
+                <div class="panel-head-title">
+                    <span class="icon-badge icon-badge--brand"><i class="bi bi-box-arrow-right"></i></span>
+                    <div>
+                        <h2 class="panel-title">Partenze di oggi</h2>
+                        <p class="panel-sub">Ospiti da salutare con il check-out</p>
+                    </div>
+                </div>
+                <span class="count">{{ partenze|length }}</span>
+            </header>
+            {% if partenze %}
+            <ul class="task-list">
+                {% for p in partenze %}
+                <li class="task">
+                    <span class="avatar">{{ p.nome_ospite[0] }}{{ p.cognome_ospite[0] }}</span>
+                    <div class="task-main">
+                        <a href="/soggiorno/{{ p.id_soggiorno }}" class="task-title">{{ p.nome_ospite }} {{ p.cognome_ospite }}</a>
+                        <span class="task-meta">Camera <span class="mono">{{ p.numero_camera }}</span> · {{ p.nome_camera }} · dal {{ p.data_checkin.strftime('%d/%m') }}</span>
+                    </div>
+                    <a href="/soggiorni/stato/{{ p.id_soggiorno }}/check_out" class="btn btn-sm btn-brand"><i class="bi bi-box-arrow-right"></i> Check-out</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="empty">
+                <i class="bi bi-moon-stars"></i>
+                <p>Nessuna partenza prevista per oggi.</p>
             </div>
-            <div class="card-body p-0">
-                {% if partenze %}
-                <ul class="list-group list-group-flush">
-                    {% for p in partenze %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="agenda-avatar">{{ p.nome_ospite[0] }}{{ p.cognome_ospite[0] }}</div>
-                            <div>
-                                <strong>{{ p.nome_ospite }} {{ p.cognome_ospite }}</strong><br>
-                                <small class="text-muted">{{ p.numero_camera }} - {{ p.nome_camera }}</small>
-                            </div>
-                        </div>
-                        <a href="/soggiorni/stato/{{ p.id_soggiorno }}/check_out" class="btn btn-sm btn-outline-danger">
-                            Check-out
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p class="p-3 text-muted m-0"><i class="bi bi-moon-stars me-1"></i> Nessuna partenza prevista per oggi.</p>
-                {% endif %}
-            </div>
-        </div>
+            {% endif %}
+        </section>
     </div>
 </div>
 {% endblock %}
