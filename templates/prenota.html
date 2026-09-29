@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block titolo %}Prenota Camera - B&B Sicilia{% endblock %}
+
+{% block contenuto %}
+<h2 class="mb-3"><i class="bi bi-calendar-plus text-primary"></i> Nuova Prenotazione</h2>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body bg-light">
+        <h5 class="card-title fw-bold text-primary">{{ camera.numero }} - {{ camera.nome }}</h5>
+        <p class="card-text mb-1">Tipo: <strong>{{ camera.tipo }}</strong> | Posti: <strong>{{ camera.posti }}</strong> | Prezzo a Notte: <strong>€ {{ "%.2f"|format(camera.prezzo_notte) }}</strong></p>
+        <p class="card-text text-muted">Data Inizio Soggiorno (Oggi): <strong>{{ data_oggi }}</strong></p>
+    </div>
+</div>
+
+<h4 class="mb-3">Seleziona Ospite e Durata del Soggiorno:</h4>
+<div class="table-responsive bg-white shadow-sm rounded">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="table-dark">
+            <tr>
+                <th>Ospite</th>
+                <th>Contatti</th>
+                <th>Nazionalità</th>
+                <th>Seleziona Notti per Prenotare</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for o in ospiti %}
+            <tr>
+                <td><strong>{{ o.cognome }} {{ o.nome }}</strong></td>
+                <td><small>{{ o.email }}<br>{{ o.telefono }}</small></td>
+                <td>{{ o.nazionalita }}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <a href="/conferma/{{ camera.id_camera }}/{{ o.id_ospite }}/1" class="btn btn-outline-primary">1 Notte</a>
+                        <a href="/conferma/{{ camera.id_camera }}/{{ o.id_ospite }}/2" class="btn btn-outline-primary">2 Notti</a>
+                        <a href="/conferma/{{ camera.id_camera }}/{{ o.id_ospite }}/3" class="btn btn-outline-primary">3 Notti</a>
+                        <a href="/conferma/{{ camera.id_camera }}/{{ o.id_ospite }}/5" class="btn btn-outline-primary">5 Notti</a>
+                        <a href="/conferma/{{ camera.id_camera }}/{{ o.id_ospite }}/7" class="btn btn-outline-primary">7 Notti</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
