@@ -2,151 +2,295 @@
 {% block titolo %}Prenota Camera - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
-<div class="page-head d-flex flex-wrap justify-content-between align-items-center gap-2">
+<nav class="crumbs" aria-label="Percorso">
+    <a href="/camere">Camere</a>
+    <i class="bi bi-chevron-right"></i>
+    <span>Nuova prenotazione</span>
+</nav>
+
+<header class="page-header">
     <div>
-        <h2><i class="bi bi-calendar-plus"></i> Nuova Prenotazione</h2>
-        <p>Camera {{ camera.numero }} &mdash; {{ camera.nome }}</p>
+        <h1 class="page-title">Prenota la camera <span class="mono">{{ camera.numero }}</span></h1>
+        <p class="page-sub">{{ camera.nome }} · {{ camera.tipo }} · {{ camera.posti }} posti</p>
     </div>
-    <a href="/camere" class="btn btn-outline-light"><i class="bi bi-arrow-left"></i> Torna alle Camere</a>
-</div>
+    <div class="page-actions">
+        <a href="/camere" class="btn btn-ghost"><i class="bi bi-arrow-left"></i> Torna alle camere</a>
+    </div>
+</header>
 
-<!-- DETTAGLI CAMERA -->
-<div class="card mb-4 shadow-sm border-0">
-    <div class="card-body rounded d-flex flex-wrap align-items-center justify-content-between gap-3" style="background: var(--sand-deep);">
-        <div>
-            <h5 class="card-title fw-bold mb-1" style="font-family: var(--font-display); color: var(--terracotta);">{{ camera.numero }} - {{ camera.nome }}</h5>
-            <p class="card-text mb-0 text-muted"><i class="bi bi-people-fill"></i> {{ camera.tipo }} &middot; {{ camera.posti }} posti</p>
-        </div>
-        <div class="room-card__prezzo">€ {{ "%.2f"|format(camera.prezzo_notte) }} <small>/ notte</small></div>
-    </div>
-</div>
-
-<!-- FORM PRENOTAZIONE PERSONALIZZATA -->
-<div class="card shadow-sm mb-4 border-0">
-    <div class="card-header fw-bold text-white" style="background: linear-gradient(135deg, var(--sea) 0%, #0e4750 100%);">
-        <i class="bi bi-pencil-square"></i> Seleziona Ospite e Date del Soggiorno
-    </div>
-    <div class="card-body">
-        {% if prenotazioni_attive %}
-        <div class="alert alert-warning mb-3 d-flex gap-2">
-            <i class="bi bi-calendar-x fs-5"></i>
-            <div>
-                <strong>Periodi già occupati per questa camera:</strong>
-                <ul class="mb-0 mt-1 ps-3">
-                    {% for p in prenotazioni_attive %}
-                    <li>Dal <strong>{{ p.data_checkin.strftime('%d/%m/%Y') }}</strong> al <strong>{{ p.data_checkout.strftime('%d/%m/%Y') }}</strong> &mdash; {{ p.cognome_ospite }} {{ p.nome_ospite }} ({{ 'In Struttura' if p.stato == 'check_in' else 'Prenotato' }})</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-        {% endif %}
-        <form action="/prenota/{{ camera.id_camera }}" method="POST">
-            <div class="row g-3">
-                <!-- SELEZIONE OSPITE CON PULSANTE NUOVO -->
-                <div class="col-md-5">
-                    <label class="form-label">Cliente / Ospite *</label>
-                    <div class="input-group">
-                        <select name="id_ospite" class="form-select" required>
-                            <option value="">-- Seleziona un ospite --</option>
-                            {% for o in ospiti %}
-                            <option value="{{ o.id_ospite }}" {% if id_ospite_selezionato == o.id_ospite %}selected{% endif %}>
-                                {{ o.cognome }} {{ o.nome }} ({{ o.nazionalita or 'N/D' }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNuovoOspite">
-                            <i class="bi bi-person-plus-fill"></i> Nuovo
-                        </button>
+<div class="row g-3 g-lg-4 align-items-start">
+    <!-- FORM PRENOTAZIONE -->
+    <div class="col-lg-8">
+        <form action="/prenota/{{ camera.id_camera }}" method="POST" class="panel">
+            <div class="panel-body">
+                <!-- PASSO 1: OSPITE -->
+                <section class="step">
+                    <div class="step-head">
+                        <span class="step-num">1</span>
+                        <div>
+                            <h2 class="panel-title">Ospite</h2>
+                            <p class="panel-sub">Scegli un cliente già registrato o aggiungine uno nuovo.</p>
+                        </div>
                     </div>
-                    <small class="text-muted">Seleziona dalla lista o creane uno nuovo con la modale.</small>
-                </div>
+                    <div class="step-body">
+                        <label class="form-label" for="id_ospite">Cliente *</label>
+                        <div class="d-flex flex-column flex-sm-row gap-2">
+                            <select name="id_ospite" id="id_ospite" class="form-select" required>
+                                <option value="">Seleziona un ospite…</option>
+                                {% for o in ospiti %}
+                                <option value="{{ o.id_ospite }}" {% if id_ospite_selezionato == o.id_ospite %}selected{% endif %}>
+                                    {{ o.cognome }} {{ o.nome }}{% if o.nazionalita %} · {{ o.nazionalita }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-ghost flex-shrink-0" data-bs-toggle="modal" data-bs-target="#modalNuovoOspite">
+                                <i class="bi bi-person-plus"></i> Nuovo ospite
+                            </button>
+                        </div>
+                    </div>
+                </section>
 
-                <!-- DATA CHECK-IN -->
-                <div class="col-md-3">
-                    <label class="form-label">Data Check-in *</label>
-                    <input type="date" name="checkin" class="form-control" value="{{ data_oggi_iso }}" min="{{ data_oggi_iso }}" required>
-                </div>
+                <!-- PASSO 2: DATE -->
+                <section class="step">
+                    <div class="step-head">
+                        <span class="step-num">2</span>
+                        <div>
+                            <h2 class="panel-title">Date del soggiorno</h2>
+                            <p class="panel-sub">Il check-in può essere oggi o una data futura.</p>
+                        </div>
+                    </div>
+                    <div class="step-body">
+                        <div class="row g-2 g-sm-3">
+                            <div class="col-sm-6">
+                                <label class="form-label" for="checkin">Check-in *</label>
+                                <input type="date" name="checkin" id="checkin" class="form-control" value="{{ data_oggi_iso }}" min="{{ data_oggi_iso }}" required>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="checkout">Check-out *</label>
+                                <input type="date" name="checkout" id="checkout" class="form-control" value="{{ data_domani_iso }}" min="{{ data_domani_iso }}" required>
+                            </div>
+                        </div>
 
-                <!-- DATA CHECK-OUT -->
-                <div class="col-md-3">
-                    <label class="form-label">Data Check-out *</label>
-                    <input type="date" name="checkout" class="form-control" value="{{ data_domani_iso }}" min="{{ data_domani_iso }}" required>
-                </div>
+                        {% if prenotazioni_attive %}
+                        <div class="callout callout--warn mt-3">
+                            <i class="bi bi-calendar-x"></i>
+                            <div>
+                                <strong>Periodi già occupati per questa camera</strong>
+                                <ul class="busy-list">
+                                    {% for p in prenotazioni_attive %}
+                                    <li>
+                                        <span class="mono">{{ p.data_checkin.strftime('%d/%m') }} → {{ p.data_checkout.strftime('%d/%m/%Y') }}</span>
+                                        <span>{{ p.cognome_ospite }} {{ p.nome_ospite }}</span>
+                                        <span class="chip chip--{{ p.stato }}">{{ 'In struttura' if p.stato == 'check_in' else 'Prenotato' }}</span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="hint mt-3 mb-0"><i class="bi bi-check-circle"></i> Nessuna prenotazione attiva: tutte le date future sono libere.</p>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
 
-                <!-- PULSANTE CONFERMA -->
-                <div class="col-md-1 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100" title="Conferma Prenotazione">
-                        <i class="bi bi-check-lg"></i>
-                    </button>
-                </div>
+            <div class="panel-foot">
+                <p class="hint mb-0 d-none d-lg-inline-flex"><i class="bi bi-shield-check"></i> La disponibilità viene verificata alla conferma.</p>
+                <p class="foot-total d-lg-none mb-0">Totale <strong class="mono" data-totale>—</strong> <span class="text-3" data-notti-breve></span></p>
+                <button type="submit" class="btn btn-brand"><i class="bi bi-check2"></i> Conferma prenotazione</button>
             </div>
         </form>
     </div>
+
+    <!-- RIEPILOGO -->
+    <div class="col-lg-4">
+        <aside class="panel summary" data-prezzo="{{ camera.prezzo_notte }}">
+            <div class="panel-body">
+                <p class="eyebrow">Riepilogo</p>
+                <h2 class="summary-room"><span class="mono">{{ camera.numero }}</span> · {{ camera.nome }}</h2>
+                <dl class="summary-lines">
+                    <div><dt>Prezzo a notte</dt><dd class="mono">€ {{ "%.2f"|format(camera.prezzo_notte) }}</dd></div>
+                    <div><dt>Periodo</dt><dd data-periodo>—</dd></div>
+                    <div><dt>Notti</dt><dd class="mono" data-notti>—</dd></div>
+                </dl>
+                <div class="summary-total">
+                    <span>Totale camera</span>
+                    <strong class="mono" data-totale>—</strong>
+                </div>
+                <p class="hint mb-0"><i class="bi bi-info-circle"></i> I servizi extra si aggiungono dopo, dal conto.</p>
+            </div>
+        </aside>
+    </div>
 </div>
 
-<!-- TABELLA DI RIEPILOGO OSPITI -->
-<h5 class="mb-3 d-flex align-items-center gap-2" style="color: var(--ink-soft);"><i class="bi bi-people-fill"></i> Elenco Clienti Registrati</h5>
-<div class="table-responsive-wrap shadow-sm rounded mb-4" style="border: 1px solid var(--line); overflow-x: auto;">
-    <table class="table table-cards table-hover align-middle mb-0">
-        <thead>
-            <tr>
-                <th>Cognome e Nome</th>
-                <th>Email</th>
-                <th>Telefono</th>
-                <th>Nazionalità</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for o in ospiti %}
-            <tr {% if id_ospite_selezionato == o.id_ospite %}class="table-success"{% endif %}>
-                <td data-label="Cliente"><strong>{{ o.cognome }} {{ o.nome }}</strong></td>
-                <td data-label="Email">{{ o.email }}</td>
-                <td data-label="Telefono">{{ o.telefono or '-' }}</td>
-                <td data-label="Nazionalità">{{ o.nazionalita or '-' }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+<!-- ELENCO OSPITI -->
+<section class="panel mt-3 mt-lg-4">
+    <header class="panel-head">
+        <div>
+            <h2 class="panel-title">Ospiti registrati</h2>
+            <p class="panel-sub">Tocca un ospite per selezionarlo nella prenotazione.</p>
+        </div>
+        <div class="search">
+            <i class="bi bi-search"></i>
+            <input type="search" class="form-control" placeholder="Cerca nome, email o telefono" aria-label="Cerca ospite" data-cerca-ospiti>
+        </div>
+    </header>
+    <ul class="guest-list">
+        {% for o in ospiti %}
+        <li>
+            <button type="button" class="guest {% if id_ospite_selezionato == o.id_ospite %}is-selected{% endif %}"
+                    data-id-ospite="{{ o.id_ospite }}"
+                    data-testo="{{ (o.cognome ~ ' ' ~ o.nome ~ ' ' ~ o.email ~ ' ' ~ (o.telefono or ''))|lower }}">
+                <span class="avatar">{{ o.nome[0] }}{{ o.cognome[0] }}</span>
+                <span class="guest-main">
+                    <strong>{{ o.cognome }} {{ o.nome }}</strong>
+                    <span class="guest-meta">{{ o.email }}</span>
+                </span>
+                <span class="guest-extra d-none d-md-flex">
+                    <span class="mono">{{ o.telefono or '—' }}</span>
+                    <span>{{ o.nazionalita or '—' }}</span>
+                </span>
+                <i class="bi bi-check-circle-fill guest-check"></i>
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
+    <div class="empty" data-ospiti-vuoto hidden>
+        <i class="bi bi-person-x"></i>
+        <p>Nessun ospite corrisponde alla ricerca.</p>
+    </div>
+</section>
 
 <!-- MODALE BOOTSTRAP PER AGGIUNGERE UN NUOVO CLIENTE -->
 <div class="modal fade" id="modalNuovoOspite" tabindex="-1" aria-labelledby="modalNuovoOspiteLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content" style="border-radius: var(--radius); overflow: hidden; border: none;">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content">
             <form action="/ospiti/nuovo/{{ camera.id_camera }}" method="POST">
-                <div class="modal-header text-white" style="background: linear-gradient(135deg, var(--sage) 0%, #2c5c42 100%);">
-                    <h5 class="modal-title" id="modalNuovoOspiteLabel"><i class="bi bi-person-plus-fill"></i> Nuovo Cliente</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="modalNuovoOspiteLabel">Nuovo ospite</h5>
+                        <p class="panel-sub mb-0">I campi con * sono obbligatori.</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nome *</label>
-                        <input type="text" name="nome" class="form-control" placeholder="Es. Salvatore" minlength="2" maxlength="50" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Cognome *</label>
-                        <input type="text" name="cognome" class="form-control" placeholder="Es. Cammarata" minlength="2" maxlength="50" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Email *</label>
-                        <input type="email" name="email" class="form-control" placeholder="Es. salvatore@email.it" maxlength="100" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Telefono</label>
-                        <input type="tel" name="telefono" class="form-control" placeholder="Es. +39 340 1234567" minlength="8" maxlength="20" pattern="[\+]?[0-9\s\-]{8,20}" title="Da 8 a 20 caratteri (cifre, prefisso +, spazi e trattini)">
-                        <div class="form-text">Minimo 8 e massimo 20 caratteri (consentiti prefisso +, spazi e trattini).</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Nazionalità</label>
-                        <input type="text" name="nazionalita" class="form-control" placeholder="Es. Italiana" maxlength="40">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="nuovo-nome">Nome *</label>
+                            <input type="text" name="nome" id="nuovo-nome" class="form-control" placeholder="Es. Salvatore" minlength="2" maxlength="50" required>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="nuovo-cognome">Cognome *</label>
+                            <input type="text" name="cognome" id="nuovo-cognome" class="form-control" placeholder="Es. Cammarata" minlength="2" maxlength="50" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="nuovo-email">Email *</label>
+                            <input type="email" name="email" id="nuovo-email" class="form-control" placeholder="Es. salvatore@email.it" maxlength="100" required>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="nuovo-telefono">Telefono</label>
+                            <input type="tel" name="telefono" id="nuovo-telefono" class="form-control" placeholder="Es. +39 340 1234567" minlength="8" maxlength="20" pattern="[\+]?[0-9\s\-]{8,20}" title="Da 8 a 20 caratteri (cifre, prefisso +, spazi e trattini)">
+                            <div class="form-text">Da 8 a 20 caratteri: cifre, +, spazi e trattini.</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="nuovo-nazionalita">Nazionalità</label>
+                            <input type="text" name="nazionalita" id="nuovo-nazionalita" class="form-control" placeholder="Es. Italiana" maxlength="40">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                    <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Salva Cliente</button>
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-brand"><i class="bi bi-person-check"></i> Salva ospite</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block script %}
+<script>
+    (function () {
+        // --- Riepilogo prezzo in tempo reale ---
+        var prezzo = parseFloat(document.querySelector('[data-prezzo]').dataset.prezzo);
+        var checkin = document.getElementById('checkin');
+        var checkout = document.getElementById('checkout');
+        var elNotti = document.querySelector('[data-notti]');
+        var elPeriodo = document.querySelector('[data-periodo]');
+        var elTotali = document.querySelectorAll('[data-totale]');
+        var elNottiBreve = document.querySelector('[data-notti-breve]');
+
+        function scriviTotale(testo, notti) {
+            elTotali.forEach(function (el) { el.textContent = testo; });
+            elNottiBreve.textContent = notti;
+        }
+        var GIORNO = 86400000;
+
+        function isoPiuUno(iso) {
+            var d = new Date(iso + 'T00:00:00Z');
+            d.setUTCDate(d.getUTCDate() + 1);
+            return d.toISOString().slice(0, 10);
+        }
+
+        function breve(iso) {
+            return new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+        }
+
+        function aggiorna() {
+            if (checkin.value) {
+                checkout.min = isoPiuUno(checkin.value);
+                if (!checkout.value || checkout.value <= checkin.value) checkout.value = checkout.min;
+            }
+            var notti = Math.round((Date.parse(checkout.value) - Date.parse(checkin.value)) / GIORNO);
+            if (!checkin.value || !checkout.value || !(notti > 0)) {
+                elNotti.textContent = '—';
+                elPeriodo.textContent = 'Scegli le date';
+                scriviTotale('—', '');
+                return;
+            }
+            elNotti.textContent = notti;
+            elPeriodo.textContent = breve(checkin.value) + ' → ' + breve(checkout.value);
+            scriviTotale('€ ' + (notti * prezzo).toFixed(2), '· ' + notti + (notti === 1 ? ' notte' : ' notti'));
+        }
+
+        checkin.addEventListener('change', aggiorna);
+        checkout.addEventListener('change', aggiorna);
+        aggiorna();
+
+        // --- Selezione e ricerca ospiti ---
+        var select = document.getElementById('id_ospite');
+        var ospiti = document.querySelectorAll('[data-id-ospite]');
+        var cerca = document.querySelector('[data-cerca-ospiti]');
+        var vuoto = document.querySelector('[data-ospiti-vuoto]');
+
+        function evidenzia() {
+            ospiti.forEach(function (o) {
+                o.classList.toggle('is-selected', o.dataset.idOspite === select.value);
+            });
+        }
+
+        ospiti.forEach(function (o) {
+            o.addEventListener('click', function () {
+                select.value = o.dataset.idOspite;
+                evidenzia();
+                select.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                select.focus({ preventScroll: true });
+            });
+        });
+
+        select.addEventListener('change', evidenzia);
+        evidenzia();
+
+        cerca.addEventListener('input', function () {
+            var testo = cerca.value.trim().toLowerCase();
+            var trovati = 0;
+            ospiti.forEach(function (o) {
+                var ok = o.dataset.testo.indexOf(testo) !== -1;
+                o.parentElement.hidden = !ok;
+                if (ok) trovati++;
+            });
+            vuoto.hidden = trovati > 0;
+        });
+    })();
+</script>
 {% endblock %}
