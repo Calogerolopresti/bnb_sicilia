@@ -2,100 +2,138 @@
 {% block titolo %}Dettaglio Conto - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
-<div class="page-head d-flex flex-wrap justify-content-between align-items-center gap-2">
-    <div>
-        <h2><i class="bi bi-receipt"></i> Soggiorno #{{ soggiorno.id_soggiorno }}</h2>
-        <p>{{ soggiorno.nome_ospite }} {{ soggiorno.cognome_ospite }} &mdash; camera {{ soggiorno.numero_camera }}</p>
-    </div>
-    <a href="/soggiorni" class="btn btn-outline-light">&larr; Torna ai soggiorni</a>
-</div>
+{% set etichette = {'prenotato': 'Prenotato', 'check_in': 'In struttura', 'check_out': 'Terminato', 'annullato': 'Annullato'} %}
 
-<div class="row g-4 mb-4">
-    <!-- Dati Camera e Ospite -->
-    <div class="col-md-6">
-        <div class="card shadow-sm h-100 border-0">
-            <div class="card-header fw-bold text-white" style="background: linear-gradient(135deg, var(--sea) 0%, #0e4750 100%);">
-                <i class="bi bi-info-circle"></i> Info Soggiorno
-            </div>
-            <div class="card-body">
-                <p><strong>Camera:</strong> {{ soggiorno.numero_camera }} - {{ soggiorno.nome_camera }}</p>
-                <p><strong>Ospite:</strong> {{ soggiorno.nome_ospite }} {{ soggiorno.cognome_ospite }}</p>
-                <p><strong>Email:</strong> {{ soggiorno.email }} | <strong>Tel:</strong> {{ soggiorno.telefono }}</p>
-                <p class="mb-0"><strong>Date:</strong> {{ soggiorno.data_checkin.strftime('%d/%m/%Y') }} &rarr; {{ soggiorno.data_checkout.strftime('%d/%m/%Y') }} <span class="text-muted">({{ notti }} notti)</span></p>
-            </div>
+<nav class="crumbs" aria-label="Percorso">
+    <a href="/soggiorni">Soggiorni</a>
+    <i class="bi bi-chevron-right"></i>
+    <span class="mono">#{{ soggiorno.id_soggiorno }}</span>
+</nav>
+
+<header class="page-header">
+    <div class="d-flex align-items-center gap-3">
+        <span class="avatar avatar--lg">{{ soggiorno.nome_ospite[0] }}{{ soggiorno.cognome_ospite[0] }}</span>
+        <div>
+            <h1 class="page-title">{{ soggiorno.nome_ospite }} {{ soggiorno.cognome_ospite }}</h1>
+            <p class="page-sub">Camera <span class="mono">{{ soggiorno.numero_camera }}</span> · {{ soggiorno.nome_camera }}</p>
         </div>
     </div>
-
-    <!-- Riepilogo Conto -->
-    <div class="col-md-6">
-        <div class="receipt-card h-100">
-            <div class="receipt-card__head"><i class="bi bi-cash-coin"></i> Riepilogo Conto</div>
-            <div class="receipt-card__body">
-                <div class="receipt-line">
-                    <span>Pernottamento ({{ notti }} notti &times; € {{ "%.2f"|format(soggiorno.prezzo_notte) }})</span>
-                    <strong>€ {{ "%.2f"|format(totale_camere) }}</strong>
-                </div>
-                <div class="receipt-line">
-                    <span>Servizi extra</span>
-                    <strong>€ {{ "%.2f"|format(tot_extra) }}</strong>
-                </div>
-                <div class="receipt-total">
-                    <span class="label">Totale</span>
-                    <span class="value">€ {{ "%.2f"|format(conto_totale) }}</span>
-                </div>
-            </div>
-        </div>
+    <div class="page-actions">
+        <span class="chip chip--{{ soggiorno.stato }}">{{ etichette[soggiorno.stato] }}</span>
+        <button type="button" class="btn btn-ghost" onclick="window.print()"><i class="bi bi-printer"></i> Stampa conto</button>
     </div>
-</div>
+</header>
 
-<!-- SERVIZI EXTRA E CATALOGO -->
-<div class="row g-4">
-    <div class="col-md-7">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white fw-bold" style="color: var(--ink-soft);"><i class="bi bi-bag-check"></i> Servizi Extra Acquistati</div>
-            <div class="card-body p-0">
-                <table class="table mb-0 align-middle">
-                    <thead>
-                        <tr>
-                            <th>Servizio</th>
-                            <th>Prezzo</th>
-                            <th>Azione</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for ex in extra_lista %}
-                        <tr>
-                            <td>{{ ex.nome_servizio }}</td>
-                            <td class="fw-bold">€ {{ "%.2f"|format(ex.prezzo) }}</td>
-                            <td>
-                                <a href="/extra/rimuovi/{{ ex.id_extra }}/{{ soggiorno.id_soggiorno }}" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash3"></i> Rimuovi
-                                </a>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="3" class="text-muted p-3"><i class="bi bi-bag-x me-1"></i> Nessun servizio extra aggiunto.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+<div class="row g-3 g-lg-4 align-items-start">
+    <div class="col-lg-8 d-flex flex-column gap-3 gap-lg-4">
+        <!-- DETTAGLI SOGGIORNO -->
+        <section class="panel">
+            <div class="panel-body">
+                <div class="stay">
+                    <div class="stay-point">
+                        <span class="eyebrow mb-0">Check-in</span>
+                        <strong class="mono">{{ soggiorno.data_checkin.strftime('%d/%m/%Y') }}</strong>
+                    </div>
+                    <div class="stay-line"><span>{{ notti }} {{ 'notte' if notti == 1 else 'notti' }}</span></div>
+                    <div class="stay-point text-end">
+                        <span class="eyebrow mb-0">Check-out</span>
+                        <strong class="mono">{{ soggiorno.data_checkout.strftime('%d/%m/%Y') }}</strong>
+                    </div>
+                </div>
+
+                <dl class="facts">
+                    <div>
+                        <dt>Camera</dt>
+                        <dd><span class="mono">{{ soggiorno.numero_camera }}</span> · {{ soggiorno.nome_camera }}</dd>
+                    </div>
+                    <div>
+                        <dt>Prezzo a notte</dt>
+                        <dd class="mono">€ {{ "%.2f"|format(soggiorno.prezzo_notte) }}</dd>
+                    </div>
+                    <div>
+                        <dt>Email</dt>
+                        <dd><a href="mailto:{{ soggiorno.email }}">{{ soggiorno.email }}</a></dd>
+                    </div>
+                    <div>
+                        <dt>Telefono</dt>
+                        <dd>
+                            {% if soggiorno.telefono %}
+                            <a href="tel:{{ soggiorno.telefono|replace(' ', '') }}" class="mono">{{ soggiorno.telefono }}</a>
+                            {% else %}—{% endif %}
+                        </dd>
+                    </div>
+                </dl>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <div class="col-md-5">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white fw-bold" style="color: var(--ink-soft);"><i class="bi bi-stars"></i> Aggiungi dal Catalogo Extra</div>
-            <div class="card-body">
-                {% for cod, item in catalogo.items() %}
-                <a href="/soggiorno/{{ soggiorno.id_soggiorno }}/extra/{{ cod }}" class="extra-pick text-decoration-none">
-                    <span class="text-body"><i class="bi bi-plus-circle me-1" style="color: var(--sage);"></i>{{ item[0] }}</span>
-                    <span class="badge rounded-pill" style="background: var(--sand-deep); color: var(--ink);">+ € {{ "%.2f"|format(item[1]) }}</span>
-                </a>
+        <!-- SERVIZI EXTRA -->
+        <section class="panel">
+            <header class="panel-head">
+                <div>
+                    <h2 class="panel-title">Servizi extra</h2>
+                    <p class="panel-sub">{{ extra_lista|length }} {{ 'servizio addebitato' if extra_lista|length == 1 else 'servizi addebitati' }} sul conto</p>
+                </div>
+            </header>
+
+            {% if extra_lista %}
+            <ul class="extra-list">
+                {% for ex in extra_lista %}
+                <li class="extra-item">
+                    <span class="extra-icon"><i class="bi bi-bag-check"></i></span>
+                    <div class="extra-main">
+                        <strong>{{ ex.nome_servizio }}</strong>
+                        <span class="text-3 small">{{ ex.data_servizio.strftime('%d/%m/%Y') }}</span>
+                    </div>
+                    <span class="mono fw-semibold">€ {{ "%.2f"|format(ex.prezzo) }}</span>
+                    <a href="/extra/rimuovi/{{ ex.id_extra }}/{{ soggiorno.id_soggiorno }}" class="btn btn-sm btn-icon btn-ghost-danger"
+                       data-confirm="Rimuovere «{{ ex.nome_servizio }}» dal conto?"
+                       title="Rimuovi" aria-label="Rimuovi {{ ex.nome_servizio }}"><i class="bi bi-trash3"></i></a>
+                </li>
                 {% endfor %}
+            </ul>
+            {% else %}
+            <div class="empty">
+                <i class="bi bi-bag"></i>
+                <p>Nessun servizio extra: aggiungilo dal catalogo qui sotto.</p>
             </div>
-        </div>
+            {% endif %}
+
+            <div class="catalog">
+                <p class="eyebrow mb-2">Aggiungi dal catalogo</p>
+                <div class="catalog-grid">
+                    {% for cod, item in catalogo.items() %}
+                    <a href="/soggiorno/{{ soggiorno.id_soggiorno }}/extra/{{ cod }}" class="catalog-tile">
+                        <span class="catalog-name">{{ item[0] }}</span>
+                        <span class="catalog-price mono">€ {{ "%.2f"|format(item[1]) }}</span>
+                        <span class="catalog-add" aria-hidden="true"><i class="bi bi-plus-lg"></i></span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- CONTO -->
+    <div class="col-lg-4">
+        <aside class="panel bill">
+            <div class="panel-body">
+                <p class="eyebrow">Conto</p>
+                <dl class="bill-lines">
+                    <div>
+                        <dt>Pernottamento<small>{{ notti }} {{ 'notte' if notti == 1 else 'notti' }} × € {{ "%.2f"|format(soggiorno.prezzo_notte) }}</small></dt>
+                        <dd class="mono">€ {{ "%.2f"|format(totale_camere) }}</dd>
+                    </div>
+                    <div>
+                        <dt>Servizi extra<small>{{ extra_lista|length }} {{ 'voce' if extra_lista|length == 1 else 'voci' }}</small></dt>
+                        <dd class="mono">€ {{ "%.2f"|format(tot_extra) }}</dd>
+                    </div>
+                </dl>
+                <div class="bill-total">
+                    <span>Totale</span>
+                    <strong class="mono">€ {{ "%.2f"|format(conto_totale) }}</strong>
+                </div>
+            </div>
+        </aside>
     </div>
 </div>
 {% endblock %}
