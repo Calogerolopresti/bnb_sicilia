@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block titolo %}Gestionale B&B Sicilia{% endblock %}</title>
+    <!-- Bootstrap 5 CDN CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-light">
+
+    <!-- NAVBAR PRINCIPALE -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/"><i class="bi bi-house-heart"></i> B&B Sicilia</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="/"><i class="bi bi-speedometer2"></i> Dashboard</a>
+                    <a class="nav-link" href="/camere"><i class="bi bi-door-open"></i> Camere</a>
+                    <a class="nav-link" href="/soggiorni"><i class="bi bi-calendar-check"></i> Soggiorni</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENITORE MESSAGGI FLASH -->
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- CONTENUTO PRINCIPALE DELLE PAGINE Andiamo a inserire in mezzo a block contenuto e end block il contenuto della pagina-->
+        {% block contenuto %}{% endblock %}
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="text-center text-muted py-4 mt-5 border-top bg-white">
+        <div class="container">
+            <small>Gestionale B&B Sicilia &copy; Progetto sviluppato per il corso di Programmazione 2, Versioning & DataManagement</small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle con Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
