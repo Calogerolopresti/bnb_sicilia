@@ -1,3 +1,4 @@
+from datetime import date
 import mysql.connector
 
 # CONFIGURAZIONE CONNESSIONE MYSQL
@@ -32,7 +33,7 @@ def lista(sql, params=()):
 def riga(sql, params=()):
     """Modello 2: Esegue query SELECT e restituisce una sola riga o None."""
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(dictionary=True, buffered=True)
     cursor.execute(sql, params)
     risultato = cursor.fetchone()
     cursor.close()
@@ -79,6 +80,25 @@ def lista_ospiti():
 def get_ospite(id_ospite):
     """Restituisce i dettagli di un singolo ospite tramite ID."""
     return riga("SELECT * FROM ospiti WHERE id_ospite = %s", (id_ospite,))
+
+
+def crea_ospite(nome, cognome, email, telefono, nazionalita):
+    """Inserisce un nuovo ospite nel database e restituisce il suo ID."""
+    sql = """
+        INSERT INTO ospiti (nome, cognome, email, telefono, nazionalita)
+        VALUES (%s, %s, %s, %s, %s)
+    """
+    return modifica(sql, (nome, cognome, email, telefono, nazionalita))
+
+
+def get_ospite_per_email(email):
+    """Restituisce l'ospite associato a un dato indirizzo email se presente."""
+    return riga("SELECT * FROM ospiti WHERE email = %s", (email,))
+
+
+def get_ospite_per_telefono(telefono):
+    """Restituisce l'ospite associato a un dato numero di telefono se presente."""
+    return riga("SELECT * FROM ospiti WHERE telefono = %s", (telefono,))
 
 
 def conta_camere_per_stato():
@@ -128,6 +148,33 @@ def lista_soggiorni():
     return lista(sql)
 
 
+def filtra_soggiorni(data_da=None, data_a=None, stato=None):
+    """Restituisce i soggiorni filtrati per intervallo date e/o stato."""
+    sql = """
+        SELECT s.*, c.nome AS nome_camera, c.numero AS numero_camera, o.nome AS nome_ospite, o.cognome AS cognome_ospite
+        FROM soggiorni s
+        INNER JOIN camere c ON s.id_camera = c.id_camera
+        INNER JOIN ospiti o ON s.id_ospite = o.id_ospite
+        WHERE 1=1
+    """
+    params = []
+
+    if data_da:
+        sql += " AND s.data_checkout >= %s"
+        params.append(data_da)
+
+    if data_a:
+        sql += " AND s.data_checkin <= %s"
+        params.append(data_a)
+
+    if stato and stato in ['prenotato', 'check_in', 'check_out', 'annullato']:
+        sql += " AND s.stato = %s"
+        params.append(stato)
+
+    sql += " ORDER BY s.data_checkin ASC"
+    return lista(sql, tuple(params))
+
+
 def get_soggiorno(id_soggiorno):
     """Restituisce il dettaglio di un soggiorno includendo i dati della camera e dell'ospite."""
     sql = """
@@ -143,6 +190,10 @@ def get_soggiorno(id_soggiorno):
 
 def camera_disponibile(id_camera, checkin, checkout):
     """Controlla se una camera è già prenotata o occupata nelle date selezionate."""
+    # Non è disponibile per date passate o non valide
+    if checkout <= checkin or checkin < date.today():
+        return False
+
     sql = """
         SELECT COUNT(*) AS n 
         FROM soggiorni 
@@ -152,7 +203,21 @@ def camera_disponibile(id_camera, checkin, checkout):
           AND data_checkout > %s
     """
     ris = riga(sql, (id_camera, checkout, checkin))
-    return ris['n'] == 0
+    return (ris['n'] == 0) if ris else True
+
+
+def lista_prenotazioni_camera(id_camera):
+    """Restituisce le prenotazioni attive o future per una camera per visualizzarle nel riepilogo."""
+    sql = """
+        SELECT s.*, o.nome AS nome_ospite, o.cognome AS cognome_ospite
+        FROM soggiorni s
+        INNER JOIN ospiti o ON s.id_ospite = o.id_ospite
+        WHERE s.id_camera = %s 
+          AND s.stato IN ('prenotato', 'check_in')
+          AND s.data_checkout >= CURDATE()
+        ORDER BY s.data_checkin ASC
+    """
+    return lista(sql, (id_camera,))
 
 
 def crea_soggiorno(id_camera, id_ospite, checkin, checkout):
@@ -167,6 +232,29 @@ def crea_soggiorno(id_camera, id_ospite, checkin, checkout):
 def aggiorna_stato_soggiorno(id_soggiorno, stato):
     """Aggiorna lo stato di un soggiorno."""
     return modifica("UPDATE soggiorni SET stato = %s WHERE id_soggiorno = %s", (stato, id_soggiorno))
+
+
+def get_soggiorno_oggi_camera(id_camera):
+    """Restituisce l'eventuale soggiorno attivo o prenotato per la camera nella data odierna."""
+    sql = """
+        SELECT * FROM soggiorni 
+        WHERE id_camera = %s 
+          AND stato IN ('prenotato', 'check_in') 
+          AND data_checkin <= CURDATE() 
+          AND data_checkout >= CURDATE()
+        LIMIT 1
+    """
+    return riga(sql, (id_camera,))
+
+
+def annulla_soggiorni_camera(id_camera):
+    """Annulla solo il soggiorno di oggi (non le prenotazioni future) quando la camera viene liberata manualmente."""
+    sql = """
+        UPDATE soggiorni SET stato = 'annullato'
+        WHERE id_camera = %s AND stato IN ('prenotato', 'check_in')
+          AND data_checkin <= CURDATE() AND data_checkout >= CURDATE()
+    """
+    return modifica(sql, (id_camera,))
 
 
 def lista_extra_soggiorno(id_soggiorno):

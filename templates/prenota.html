@@ -2,45 +2,142 @@
 {% block titolo %}Prenota Camera - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
-<h2 class="mb-3"><i class="bi bi-calendar-plus text-primary"></i> Nuova Prenotazione</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-calendar-plus text-primary"></i> Nuova Prenotazione</h2>
+    <a href="/camere" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Torna alle Camere</a>
+</div>
 
-<div class="card mb-4 shadow-sm">
-    <div class="card-body bg-light">
+<!-- DETTAGLI CAMERA -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body bg-light rounded">
         <h5 class="card-title fw-bold text-primary">{{ camera.numero }} - {{ camera.nome }}</h5>
-        <p class="card-text mb-1">Tipo: <strong>{{ camera.tipo }}</strong> | Posti: <strong>{{ camera.posti }}</strong> | Prezzo a Notte: <strong>€ {{ "%.2f"|format(camera.prezzo_notte) }}</strong></p>
-        <p class="card-text text-muted">Data Inizio Soggiorno (Oggi): <strong>{{ data_oggi }}</strong></p>
+        <p class="card-text mb-0">Tipo: <strong>{{ camera.tipo }}</strong> | Posti: <strong>{{ camera.posti }}</strong> | Prezzo a Notte: <strong>€ {{ "%.2f"|format(camera.prezzo_notte) }}</strong></p>
     </div>
 </div>
 
-<h4 class="mb-3">Seleziona Ospite e Durata del Soggiorno:</h4>
-<div class="table-responsive bg-white shadow-sm rounded">
+<!-- FORM PRENOTAZIONE PERSONALIZZATA -->
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-header bg-primary text-white fw-bold">
+        <i class="bi bi-pencil-square"></i> Seleziona Ospite e Date del Soggiorno
+    </div>
+    <div class="card-body">
+        {% if prenotazioni_attive %}
+        <div class="alert alert-warning mb-3">
+            <i class="bi bi-calendar-x"></i> <strong>Periodi già occupati per questa camera:</strong>
+            <ul class="mb-0 mt-1 ps-3">
+                {% for p in prenotazioni_attive %}
+                <li>Dal <strong>{{ p.data_checkin.strftime('%d/%m/%Y') }}</strong> al <strong>{{ p.data_checkout.strftime('%d/%m/%Y') }}</strong> &mdash; {{ p.cognome_ospite }} {{ p.nome_ospite }} ({{ 'In Struttura' if p.stato == 'check_in' else 'Prenotato' }})</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        <form action="/prenota/{{ camera.id_camera }}" method="POST">
+            <div class="row g-3">
+                <!-- SELEZIONE OSPITE CON PULSANTE NUOVO -->
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Cliente / Ospite *</label>
+                    <div class="input-group">
+                        <select name="id_ospite" class="form-select" required>
+                            <option value="">-- Seleziona un ospite --</option>
+                            {% for o in ospiti %}
+                            <option value="{{ o.id_ospite }}" {% if id_ospite_selezionato == o.id_ospite %}selected{% endif %}>
+                                {{ o.cognome }} {{ o.nome }} ({{ o.nazionalita or 'N/D' }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNuovoOspite">
+                            <i class="bi bi-person-plus-fill"></i> Nuovo
+                        </button>
+                    </div>
+                    <small class="text-muted">Seleziona dalla lista o creane uno nuovo con la modale.</small>
+                </div>
+
+                <!-- DATA CHECK-IN -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Data Check-in *</label>
+                    <input type="date" name="checkin" class="form-control" value="{{ data_oggi_iso }}" min="{{ data_oggi_iso }}" required>
+                </div>
+
+                <!-- DATA CHECK-OUT -->
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Data Check-out *</label>
+                    <input type="date" name="checkout" class="form-control" value="{{ data_domani_iso }}" min="{{ data_domani_iso }}" required>
+                </div>
+
+                <!-- PULSANTE CONFERMA -->
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100" title="Conferma Prenotazione">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TABELLA DI RIEPILOGO OSPITI -->
+<h5 class="mb-3 text-secondary"><i class="bi bi-people-fill"></i> Elenco Clienti Registrati</h5>
+<div class="table-responsive bg-white shadow-sm rounded mb-4">
     <table class="table table-hover align-middle mb-0">
         <thead class="table-dark">
             <tr>
-                <th>Ospite</th>
-                <th>Contatti</th>
+                <th>Cognome e Nome</th>
+                <th>Email</th>
+                <th>Telefono</th>
                 <th>Nazionalità</th>
-                <th>Seleziona Notti per Prenotare</th>
             </tr>
         </thead>
         <tbody>
             {% for o in ospiti %}
-            <tr>
+            <tr {% if id_ospite_selezionato == o.id_ospite %}class="table-success"{% endif %}>
                 <td><strong>{{ o.cognome }} {{ o.nome }}</strong></td>
-                <td><small>{{ o.email }}<br>{{ o.telefono }}</small></td>
-                <td>{{ o.nazionalita }}</td>
-                <td>
-                    <div class="btn-group btn-group-sm">
-                        <a href="/conferma/{{ camera.id_camera }}/{{ o.id_ospite }}/1" class="btn btn-outline-primary">1 Notte</a>
-                        <a href="/conferma/{{ camera.id_camera }}/{{ o.id_ospite }}/2" class="btn btn-outline-primary">2 Notti</a>
-                        <a href="/conferma/{{ camera.id_camera }}/{{ o.id_ospite }}/3" class="btn btn-outline-primary">3 Notti</a>
-                        <a href="/conferma/{{ camera.id_camera }}/{{ o.id_ospite }}/5" class="btn btn-outline-primary">5 Notti</a>
-                        <a href="/conferma/{{ camera.id_camera }}/{{ o.id_ospite }}/7" class="btn btn-outline-primary">7 Notti</a>
-                    </div>
-                </td>
+                <td>{{ o.email }}</td>
+                <td>{{ o.telefono or '-' }}</td>
+                <td>{{ o.nazionalita or '-' }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<!-- MODALE BOOTSTRAP PER AGGIUNGERE UN NUOVO CLIENTE -->
+<div class="modal fade" id="modalNuovoOspite" tabindex="-1" aria-labelledby="modalNuovoOspiteLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="/ospiti/nuovo/{{ camera.id_camera }}" method="POST">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="modalNuovoOspiteLabel"><i class="bi bi-person-plus-fill"></i> Nuovo Cliente</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nome *</label>
+                        <input type="text" name="nome" class="form-control" placeholder="Es. Salvatore" minlength="2" maxlength="50" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Cognome *</label>
+                        <input type="text" name="cognome" class="form-control" placeholder="Es. Cammarata" minlength="2" maxlength="50" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Email *</label>
+                        <input type="email" name="email" class="form-control" placeholder="Es. salvatore@email.it" maxlength="100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Telefono</label>
+                        <input type="tel" name="telefono" class="form-control" placeholder="Es. +39 340 1234567" minlength="8" maxlength="20" pattern="[\+]?[0-9\s\-]{8,20}" title="Da 8 a 20 caratteri (cifre, prefisso +, spazi e trattini)">
+                        <div class="form-text">Minimo 8 e massimo 20 caratteri (consentiti prefisso +, spazi e trattini).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nazionalità</label>
+                        <input type="text" name="nazionalita" class="form-control" placeholder="Es. Italiana" maxlength="40">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-success"><i class="bi bi-save"></i> Salva Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -2,7 +2,56 @@
 {% block titolo %}Soggiorni - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
-<h2 class="mb-4"><i class="bi bi-calendar-check text-primary"></i> Lista Soggiorni</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-calendar-check text-primary"></i> Lista Soggiorni</h2>
+    <span class="badge bg-primary fs-6">{{ soggiorni|length }} trovati</span>
+</div>
+
+<!-- BARRA DEI FILTRI GENERALI -->
+<div class="card shadow-sm mb-4 border-0">
+    <div class="card-body bg-light rounded">
+        <form action="/soggiorni" method="GET" class="row g-2 align-items-end">
+            <!-- DATA INIZIO -->
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1"><i class="bi bi-calendar-event"></i> Dal (Data arrivo/partenza):</label>
+                <input type="date" name="data_da" class="form-control form-control-sm" value="{{ data_da or '' }}">
+            </div>
+
+            <!-- DATA FINE -->
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1"><i class="bi bi-calendar-event"></i> Al:</label>
+                <input type="date" name="data_a" class="form-control form-control-sm" value="{{ data_a or '' }}">
+            </div>
+
+            <!-- FILTRO STATO -->
+            <div class="col-md-3">
+                <label class="form-label small fw-bold mb-1"><i class="bi bi-funnel"></i> Stato:</label>
+                <select name="stato" class="form-select form-select-sm">
+                    <option value="">-- Tutti gli stati --</option>
+                    {% for st in stati_soggiorno %}
+                    <option value="{{ st }}" {% if stato_filtro == st %}selected{% endif %}>
+                        {% if st == 'prenotato' %}Prenotato
+                        {% elif st == 'check_in' %}In Struttura
+                        {% elif st == 'check_out' %}Terminato
+                        {% elif st == 'annullato' %}Annullato
+                        {% else %}{{ st|capitalize }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- PULSANTI AZIONE -->
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                    <i class="bi bi-search"></i> Filtra
+                </button>
+                <a href="/soggiorni?tutti=1" class="btn btn-outline-secondary btn-sm" title="Mostra tutti i soggiorni anche passati">
+                    <i class="bi bi-arrow-counterclockwise"></i> Tutti
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
 
 <div class="table-responsive bg-white shadow-sm rounded">
     <table class="table table-hover align-middle mb-0">
@@ -37,15 +86,36 @@
                 </td>
                 <td>
                     <div class="btn-group btn-group-sm">
-                        <a href="/soggiorni/stato/{{ s.id_soggiorno }}/check_in" class="btn btn-outline-success">Check-in</a>
-                        <a href="/soggiorni/stato/{{ s.id_soggiorno }}/check_out" class="btn btn-outline-secondary">Check-out</a>
-                        <a href="/soggiorni/stato/{{ s.id_soggiorno }}/annullato" class="btn btn-outline-danger">Annulla</a>
+                        {% if s.stato == 'prenotato' and s.data_checkin == data_oggi %}
+                            <a href="/soggiorni/stato/{{ s.id_soggiorno }}/check_in" class="btn btn-outline-success">Check-in</a>
+                        {% else %}
+                            <button class="btn btn-outline-secondary" disabled title="Check-in possibile solo il giorno di arrivo">Check-in</button>
+                        {% endif %}
+
+                        {% if s.stato == 'check_in' %}
+                            <a href="/soggiorni/stato/{{ s.id_soggiorno }}/check_out" class="btn btn-outline-secondary">Check-out</a>
+                        {% else %}
+                            <button class="btn btn-outline-secondary" disabled title="Check-out possibile solo con ospite in struttura">Check-out</button>
+                        {% endif %}
+
+                        {% if s.stato == 'prenotato' %}
+                            <a href="/soggiorni/stato/{{ s.id_soggiorno }}/annullato" class="btn btn-outline-danger">Annulla</a>
+                        {% else %}
+                            <button class="btn btn-outline-danger" disabled title="Annullabili solo le prenotazioni non ancora iniziate">Annulla</button>
+                        {% endif %}
                     </div>
                 </td>
                 <td>
                     <a href="/soggiorno/{{ s.id_soggiorno }}" class="btn btn-sm btn-info text-white">
                         <i class="bi bi-receipt"></i> Conto
                     </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                    Nessun soggiorno trovato per i filtri selezionati.
                 </td>
             </tr>
             {% endfor %}
