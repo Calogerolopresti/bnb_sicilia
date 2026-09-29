@@ -2,14 +2,17 @@
 {% block titolo %}Soggiorni - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2><i class="bi bi-calendar-check text-primary"></i> Lista Soggiorni</h2>
-    <span class="badge bg-primary fs-6">{{ soggiorni|length }} trovati</span>
+<div class="page-head d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+        <h2><i class="bi bi-calendar-check"></i> Lista Soggiorni</h2>
+        <p>Prenotazioni, check-in e check-out in un unico posto.</p>
+    </div>
+    <span class="badge bg-light text-dark fs-6"><i class="bi bi-search"></i> {{ soggiorni|length }} trovati</span>
 </div>
 
 <!-- BARRA DEI FILTRI GENERALI -->
 <div class="card shadow-sm mb-4 border-0">
-    <div class="card-body bg-light rounded">
+    <div class="card-body rounded" style="background: var(--sand-deep);">
         <form action="/soggiorni" method="GET" class="row g-2 align-items-end">
             <!-- DATA INIZIO -->
             <div class="col-md-3">
@@ -53,9 +56,9 @@
     </div>
 </div>
 
-<div class="table-responsive bg-white shadow-sm rounded">
-    <table class="table table-hover align-middle mb-0">
-        <thead class="table-dark">
+<div class="table-responsive-wrap shadow-sm rounded" style="border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto;">
+    <table class="table table-cards table-hover align-middle mb-0">
+        <thead>
             <tr>
                 <th>#</th>
                 <th>Camera</th>
@@ -69,22 +72,22 @@
         <tbody>
             {% for s in soggiorni %}
             <tr>
-                <td><strong>#{{ s.id_soggiorno }}</strong></td>
-                <td>{{ s.numero_camera }} - {{ s.nome_camera }}</td>
-                <td>{{ s.cognome_ospite }} {{ s.nome_ospite }}</td>
-                <td><small>{{ s.data_checkin.strftime('%d/%m/%Y') }} &rarr; {{ s.data_checkout.strftime('%d/%m/%Y') }}</small></td>
-                <td>
+                <td data-label="#"><strong>#{{ s.id_soggiorno }}</strong></td>
+                <td data-label="Camera">{{ s.numero_camera }} - {{ s.nome_camera }}</td>
+                <td data-label="Ospite">{{ s.cognome_ospite }} {{ s.nome_ospite }}</td>
+                <td data-label="Date"><small>{{ s.data_checkin.strftime('%d/%m/%Y') }} &rarr; {{ s.data_checkout.strftime('%d/%m/%Y') }}</small></td>
+                <td data-label="Stato">
                     {% if s.stato == 'prenotato' %}
-                        <span class="badge bg-primary">Prenotato</span>
+                        <span class="status-chip status-chip--prenotato">Prenotato</span>
                     {% elif s.stato == 'check_in' %}
-                        <span class="badge bg-success">In Struttura</span>
+                        <span class="status-chip status-chip--check_in">In Struttura</span>
                     {% elif s.stato == 'check_out' %}
-                        <span class="badge bg-secondary">Terminato</span>
+                        <span class="status-chip status-chip--check_out">Terminato</span>
                     {% else %}
-                        <span class="badge bg-danger">Annullato</span>
+                        <span class="status-chip status-chip--annullato">Annullato</span>
                     {% endif %}
                 </td>
-                <td>
+                <td class="cell-full" data-label="Cambia Stato">
                     <div class="btn-group btn-group-sm">
                         {% if s.stato == 'prenotato' and s.data_checkin == data_oggi %}
                             <a href="/soggiorni/stato/{{ s.id_soggiorno }}/check_in" class="btn btn-outline-success">Check-in</a>
@@ -105,7 +108,7 @@
                         {% endif %}
                     </div>
                 </td>
-                <td>
+                <td class="cell-full" data-label="Conto">
                     <a href="/soggiorno/{{ s.id_soggiorno }}" class="btn btn-sm btn-info text-white">
                         <i class="bi bi-receipt"></i> Conto
                     </a>

@@ -2,56 +2,46 @@
 {% block titolo %}Camere - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
-<h2 class="mb-4"><i class="bi bi-door-open text-primary"></i> Stato Camere B&B</h2>
+<div class="page-head">
+    <h2><i class="bi bi-door-open"></i> Stato Camere</h2>
+    <p>{{ camere|length }} camere in struttura &mdash; aggiorna lo stato o apri una nuova prenotazione.</p>
+</div>
 
-<div class="table-responsive bg-white shadow-sm rounded">
-    <table class="table table-hover align-middle mb-0">
-        <thead class="table-dark">
-            <tr>
-                <th>Numero</th>
-                <th>Nome Camera</th>
-                <th>Tipo / Posti</th>
-                <th>Prezzo / Notte</th>
-                <th>Stato Attuale</th>
-                <th>Cambia Stato</th>
-                <th>Azione</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for c in camere %}
-            <tr>
-                <td><strong>{{ c.numero }}</strong></td>
-                <td>{{ c.nome }}</td>
-                <td>{{ c.tipo }} ({{ c.posti }} p.)</td>
-                <td>€ {{ "%.2f"|format(c.prezzo_notte) }}</td>
-                <td>
-                    {% if c.stato == 'libera' %}
-                        <span class="badge bg-success">Libera</span>
-                    {% elif c.stato == 'occupata' %}
-                        <span class="badge bg-danger">Occupata</span>
-                    {% else %}
-                        <span class="badge bg-warning text-dark">Pulizia</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <a href="/camere/stato/{{ c.id_camera }}/libera" class="btn btn-outline-success">Libera</a>
-                        <a href="/camere/stato/{{ c.id_camera }}/occupata" class="btn btn-outline-danger">Occupata</a>
-                        <a href="/camere/stato/{{ c.id_camera }}/pulizia" class="btn btn-outline-warning text-dark">Pulizia</a>
-                    </div>
-                </td>
-                <td>
-                    {% if c.stato == 'libera' %}
-                        <a href="/prenota/{{ c.id_camera }}" class="btn btn-sm btn-primary">
-                            <i class="bi bi-calendar-plus"></i> Prenota
-                        </a>
-                    {% else %}
-                        <button class="btn btn-sm btn-secondary" disabled>Non disponibile</button>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+    {% for c in camere %}
+    <div class="col">
+        <div class="room-card" style="animation-delay: {{ loop.index0 * 0.04 }}s;">
+            <div class="room-card__top">
+                <div>
+                    <div class="room-card__numero">{{ c.numero }}</div>
+                    <div class="room-card__nome">{{ c.nome }}</div>
+                </div>
+                {% if c.stato == 'libera' %}
+                    <span class="status-chip status-chip--libera"><i class="bi bi-door-open-fill"></i> Libera</span>
+                {% elif c.stato == 'occupata' %}
+                    <span class="status-chip status-chip--occupata"><i class="bi bi-door-closed-fill"></i> Occupata</span>
+                {% else %}
+                    <span class="status-chip status-chip--pulizia"><i class="bi bi-stars"></i> Pulizia</span>
+                {% endif %}
+            </div>
+
+            <div class="room-card__meta"><i class="bi bi-people-fill"></i> {{ c.tipo }} &middot; {{ c.posti }} posti</div>
+
+            <div class="room-card__prezzo">€ {{ "%.2f"|format(c.prezzo_notte) }} <small>/ notte</small></div>
+
+            <div class="room-card__actions">
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="/camere/stato/{{ c.id_camera }}/libera" class="btn btn-outline-success" title="Segna come libera">Libera</a>
+                    <a href="/camere/stato/{{ c.id_camera }}/occupata" class="btn btn-outline-danger" title="Segna come occupata">Occupata</a>
+                    <a href="/camere/stato/{{ c.id_camera }}/pulizia" class="btn btn-outline-warning" title="Segna in pulizia">Pulizia</a>
+                </div>
+                <a href="/prenota/{{ c.id_camera }}" class="btn btn-sm btn-primary w-100">
+                    <i class="bi bi-calendar-plus"></i>
+                    {% if c.stato == 'libera' %}Prenota{% else %}Prenota per altre date{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
 </div>
 {% endblock %}

@@ -2,42 +2,46 @@
 {% block titolo %}Dettaglio Conto - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-receipt text-primary"></i> Dettaglio Soggiorno #{{ soggiorno.id_soggiorno }}</h2>
-    <a href="/soggiorni" class="btn btn-outline-secondary">&larr; Torna ai soggiorni</a>
+<div class="page-head d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+        <h2><i class="bi bi-receipt"></i> Soggiorno #{{ soggiorno.id_soggiorno }}</h2>
+        <p>{{ soggiorno.nome_ospite }} {{ soggiorno.cognome_ospite }} &mdash; camera {{ soggiorno.numero_camera }}</p>
+    </div>
+    <a href="/soggiorni" class="btn btn-outline-light">&larr; Torna ai soggiorni</a>
 </div>
 
 <div class="row g-4 mb-4">
     <!-- Dati Camera e Ospite -->
     <div class="col-md-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-primary text-white fw-bold">Info Soggiorno</div>
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-header fw-bold text-white" style="background: linear-gradient(135deg, var(--sea) 0%, #0e4750 100%);">
+                <i class="bi bi-info-circle"></i> Info Soggiorno
+            </div>
             <div class="card-body">
                 <p><strong>Camera:</strong> {{ soggiorno.numero_camera }} - {{ soggiorno.nome_camera }}</p>
                 <p><strong>Ospite:</strong> {{ soggiorno.nome_ospite }} {{ soggiorno.cognome_ospite }}</p>
                 <p><strong>Email:</strong> {{ soggiorno.email }} | <strong>Tel:</strong> {{ soggiorno.telefono }}</p>
-                <p><strong>Date:</strong> {{ soggiorno.data_checkin.strftime('%d/%m/%Y') }} &rarr; {{ soggiorno.data_checkout.strftime('%d/%m/%Y') }} ({{ notti }} notti)</p>
+                <p class="mb-0"><strong>Date:</strong> {{ soggiorno.data_checkin.strftime('%d/%m/%Y') }} &rarr; {{ soggiorno.data_checkout.strftime('%d/%m/%Y') }} <span class="text-muted">({{ notti }} notti)</span></p>
             </div>
         </div>
     </div>
 
     <!-- Riepilogo Conto -->
     <div class="col-md-6">
-        <div class="card shadow-sm h-100 border-success">
-            <div class="card-header bg-success text-white fw-bold">Riepilogo Conto Finale</div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush mb-3">
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Costo Pernottamento ({{ notti }} notti x € {{ "%.2f"|format(soggiorno.prezzo_notte) }}):</span>
-                        <strong>€ {{ "%.2f"|format(totale_camere) }}</strong>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Totale Servizi Extra:</span>
-                        <strong>€ {{ "%.2f"|format(tot_extra) }}</strong>
-                    </li>
-                </ul>
-                <div class="alert alert-success text-center m-0 fs-4 fw-bold">
-                    TOTALE: € {{ "%.2f"|format(conto_totale) }}
+        <div class="receipt-card h-100">
+            <div class="receipt-card__head"><i class="bi bi-cash-coin"></i> Riepilogo Conto</div>
+            <div class="receipt-card__body">
+                <div class="receipt-line">
+                    <span>Pernottamento ({{ notti }} notti &times; € {{ "%.2f"|format(soggiorno.prezzo_notte) }})</span>
+                    <strong>€ {{ "%.2f"|format(totale_camere) }}</strong>
+                </div>
+                <div class="receipt-line">
+                    <span>Servizi extra</span>
+                    <strong>€ {{ "%.2f"|format(tot_extra) }}</strong>
+                </div>
+                <div class="receipt-total">
+                    <span class="label">Totale</span>
+                    <span class="value">€ {{ "%.2f"|format(conto_totale) }}</span>
                 </div>
             </div>
         </div>
@@ -47,8 +51,8 @@
 <!-- SERVIZI EXTRA E CATALOGO -->
 <div class="row g-4">
     <div class="col-md-7">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white fw-bold">Servizi Extra Acquistati</div>
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white fw-bold" style="color: var(--ink-soft);"><i class="bi bi-bag-check"></i> Servizi Extra Acquistati</div>
             <div class="card-body p-0">
                 <table class="table mb-0 align-middle">
                     <thead>
@@ -62,14 +66,16 @@
                         {% for ex in extra_lista %}
                         <tr>
                             <td>{{ ex.nome_servizio }}</td>
-                            <td>€ {{ "%.2f"|format(ex.prezzo) }}</td>
+                            <td class="fw-bold">€ {{ "%.2f"|format(ex.prezzo) }}</td>
                             <td>
-                                <a href="/extra/rimuovi/{{ ex.id_extra }}/{{ soggiorno.id_soggiorno }}" class="btn btn-sm btn-outline-danger">Rimuovi</a>
+                                <a href="/extra/rimuovi/{{ ex.id_extra }}/{{ soggiorno.id_soggiorno }}" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash3"></i> Rimuovi
+                                </a>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="3" class="text-muted p-3">Nessun servizio extra aggiunto.</td>
+                            <td colspan="3" class="text-muted p-3"><i class="bi bi-bag-x me-1"></i> Nessun servizio extra aggiunto.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -79,13 +85,13 @@
     </div>
 
     <div class="col-md-5">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white fw-bold">Aggiungi dal Catalogo Extra</div>
-            <div class="list-group list-group-flush">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white fw-bold" style="color: var(--ink-soft);"><i class="bi bi-stars"></i> Aggiungi dal Catalogo Extra</div>
+            <div class="card-body">
                 {% for cod, item in catalogo.items() %}
-                <a href="/soggiorno/{{ soggiorno.id_soggiorno }}/extra/{{ cod }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                    <span>{{ item[0] }}</span>
-                    <span class="badge bg-primary rounded-pill">+ € {{ "%.2f"|format(item[1]) }}</span>
+                <a href="/soggiorno/{{ soggiorno.id_soggiorno }}/extra/{{ cod }}" class="extra-pick text-decoration-none">
+                    <span class="text-body"><i class="bi bi-plus-circle me-1" style="color: var(--sage);"></i>{{ item[0] }}</span>
+                    <span class="badge rounded-pill" style="background: var(--sand-deep); color: var(--ink);">+ € {{ "%.2f"|format(item[1]) }}</span>
                 </a>
                 {% endfor %}
             </div>
