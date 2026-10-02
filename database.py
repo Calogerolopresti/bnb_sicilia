@@ -23,34 +23,37 @@ def lista(sql, params=()):
     """Modello 1: Esegue query SELECT e restituisce una lista di dizionari."""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute(sql, params)
-    risultato = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return risultato
+    try:
+        cursor.execute(sql, params)
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def riga(sql, params=()):
     """Modello 2: Esegue query SELECT e restituisce una sola riga o None."""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True, buffered=True)
-    cursor.execute(sql, params)
-    risultato = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    return risultato
+    try:
+        cursor.execute(sql, params)
+        return cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def modifica(sql, params=()):
     """Modello 3: Esegue INSERT, UPDATE, DELETE con commit."""
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(sql, params)
-    conn.commit()
-    last_id = cursor.lastrowid
-    cursor.close()
-    conn.close()
-    return last_id
+    try:
+        cursor.execute(sql, params)
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        cursor.close()
+        conn.close()
 
 
 # ==============================================================================
@@ -135,18 +138,6 @@ def lista_partenze_oggi():
 # ==============================================================================
 # SEZIONE 2: SOGGIORNI ED EXTRA
 # ==============================================================================
-
-def lista_soggiorni():
-    """Restituisce tutti i soggiorni con i dati di camera e ospite (INNER JOIN)."""
-    sql = """
-        SELECT s.*, c.nome AS nome_camera, c.numero AS numero_camera, o.nome AS nome_ospite, o.cognome AS cognome_ospite
-        FROM soggiorni s
-        INNER JOIN camere c ON s.id_camera = c.id_camera
-        INNER JOIN ospiti o ON s.id_ospite = o.id_ospite
-        ORDER BY s.data_checkin DESC
-    """
-    return lista(sql)
-
 
 def filtra_soggiorni(data_da=None, data_a=None, stato=None):
     """Restituisce i soggiorni filtrati per intervallo date e/o stato."""
@@ -234,17 +225,30 @@ def aggiorna_stato_soggiorno(id_soggiorno, stato):
     return modifica("UPDATE soggiorni SET stato = %s WHERE id_soggiorno = %s", (stato, id_soggiorno))
 
 
-def get_soggiorno_oggi_camera(id_camera):
-    """Restituisce l'eventuale soggiorno attivo o prenotato per la camera nella data odierna."""
+def get_soggiorno_attivo_camera(id_camera):
+    """Restituisce il soggiorno con ospite attualmente in check-in nella camera, se presente."""
     sql = """
-        SELECT * FROM soggiorni 
-        WHERE id_camera = %s 
-          AND stato IN ('prenotato', 'check_in') 
-          AND data_checkin <= CURDATE() 
-          AND data_checkout >= CURDATE()
+        SELECT * FROM soggiorni
+        WHERE id_camera = %s AND stato = 'check_in'
         LIMIT 1
     """
     return riga(sql, (id_camera,))
+
+
+def get_soggiorno_arrivo_oggi_camera(id_camera):
+    """Restituisce la prenotazione con arrivo previsto oggi nella camera, se presente."""
+    sql = """
+        SELECT * FROM soggiorni
+        WHERE id_camera = %s AND stato = 'prenotato' AND data_checkin = CURDATE()
+        LIMIT 1
+    """
+    return riga(sql, (id_camera,))
+
+
+def lista_id_camere_con_ospite_presente():
+    """Restituisce gli ID delle camere con un ospite attualmente in check-in."""
+    righe = lista("SELECT DISTINCT id_camera FROM soggiorni WHERE stato = 'check_in'")
+    return [r['id_camera'] for r in righe]
 
 
 def annulla_soggiorni_camera(id_camera):
@@ -279,9 +283,16 @@ def aggiungi_extra(id_soggiorno, nome, prezzo, data):
     return modifica(sql, (id_soggiorno, nome, prezzo, data))
 
 
-def rimuovi_extra(id_extra):
-    """Elimina un servizio extra."""
-    return modifica("DELETE FROM servizi_extra WHERE id_extra = %s", (id_extra,))
+def get_extra(id_extra, id_soggiorno):
+    """Restituisce un servizio extra solo se appartiene al soggiorno indicato."""
+    sql = "SELECT * FROM servizi_extra WHERE id_extra = %s AND id_soggiorno = %s"
+    return riga(sql, (id_extra, id_soggiorno))
+
+
+def rimuovi_extra(id_extra, id_soggiorno):
+    """Elimina un servizio extra, solo se appartiene al soggiorno indicato."""
+    sql = "DELETE FROM servizi_extra WHERE id_extra = %s AND id_soggiorno = %s"
+    return modifica(sql, (id_extra, id_soggiorno))
 
 
 # ==============================================================================
@@ -291,4 +302,4 @@ if __name__ == "__main__":
     print("--- TEST FUNZIONI DATABASE ---")
     print("Camere nel sistema:", len(lista_camere()))
     print("Ospiti nel sistema:", len(lista_ospiti()))
-    print("Soggiorni nel sistema:", len(lista_soggiorni()))
+    print("Soggiorni nel sistema:", len(filtra_soggiorni()))
