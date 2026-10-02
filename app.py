@@ -1,5 +1,6 @@
 import re
 from datetime import date, timedelta
+import mysql.connector
 from flask import Flask, render_template, redirect, url_for, flash, abort, request
 import database
 
@@ -44,7 +45,8 @@ def index():
 @app.route("/camere")
 def camere():
     lista_c = database.lista_camere()
-    return render_template("camere.html", camere=lista_c)
+    camere_con_ospite = database.lista_id_camere_con_ospite_presente()
+    return render_template("camere.html", camere=lista_c, camere_con_ospite=camere_con_ospite)
 
 
 @app.route("/camere/stato/<int:id_camera>/<stato>")
@@ -57,17 +59,20 @@ def camere_cambia_stato(id_camera, stato):
     if not camera:
         abort(404)
 
-    # RISOLUZIONE PROBLEMA:
-    # Non è possibile impostare la camera come 'occupata' se nessun ospite l'ha prenotata per oggi.
+    # 'occupata': promuove a check-in SOLO un ospite già presente o in arrivo esattamente oggi
     if stato == 'occupata':
-        soggiorno = database.get_soggiorno_oggi_camera(id_camera)
-        if not soggiorno:
-            flash(f"Impossibile impostare la camera {camera['numero']} come occupata: non risulta alcuna prenotazione per oggi!", "warning")
-            return redirect(url_for("camere"))
+        if not database.get_soggiorno_attivo_camera(id_camera):
+            soggiorno_arrivo = database.get_soggiorno_arrivo_oggi_camera(id_camera)
+            if not soggiorno_arrivo:
+                flash(f"Impossibile impostare la camera {camera['numero']} come occupata: non risulta alcun ospite presente o in arrivo oggi!", "warning")
+                return redirect(url_for("camere"))
+            database.aggiorna_stato_soggiorno(soggiorno_arrivo['id_soggiorno'], 'check_in')
 
-        # Se la prenotazione per oggi era ancora solo 'prenotato', la portiamo a 'check_in'
-        if soggiorno['stato'] == 'prenotato':
-            database.aggiorna_stato_soggiorno(soggiorno['id_soggiorno'], 'check_in')
+    # 'pulizia': non è possibile se un ospite è ancora in check-in oggi
+    if stato == 'pulizia':
+        if database.get_soggiorno_attivo_camera(id_camera):
+            flash(f"Impossibile impostare la camera {camera['numero']} in pulizia: c'è ancora un ospite in check-in!", "warning")
+            return redirect(url_for("camere"))
 
     # Aggiorna lo stato della camera
     database.aggiorna_stato_camera(id_camera, stato)
@@ -130,7 +135,11 @@ def prenota(id_camera):
             flash(f"Impossibile completare la prenotazione: la camera {camera['numero']} risulta attualmente già occupata!", "danger")
             return redirect(url_for("prenota", id_camera=id_camera))
 
-        id_soggiorno = database.crea_soggiorno(id_camera, id_ospite, checkin, checkout)
+        try:
+            id_soggiorno = database.crea_soggiorno(id_camera, id_ospite, checkin, checkout)
+        except mysql.connector.IntegrityError:
+            flash("Impossibile completare la prenotazione: le date non sono valide o sono in conflitto.", "danger")
+            return redirect(url_for("prenota", id_camera=id_camera))
 
         # Se il soggiorno include la data odierna, aggiorniamo subito lo stato della camera a 'occupata'
         if checkin <= date.today() < checkout:
@@ -214,7 +223,12 @@ def nuovo_ospite(id_camera):
         flash(f"Il numero di telefono '{telefono}' appartiene già a un cliente registrato!", "danger")
         return redirect(url_for("prenota", id_camera=id_camera))
 
-    id_ospite = database.crea_ospite(nome, cognome, email, telefono, nazionalita)
+    try:
+        id_ospite = database.crea_ospite(nome, cognome, email, telefono, nazionalita)
+    except mysql.connector.IntegrityError:
+        flash(f"L'indirizzo email '{email}' appartiene già a un cliente registrato!", "danger")
+        return redirect(url_for("prenota", id_camera=id_camera))
+
     flash(f"Nuovo cliente '{cognome} {nome}' registrato con successo!", "success")
     return redirect(url_for("prenota", id_camera=id_camera, id_ospite_selezionato=id_ospite))
 
@@ -230,10 +244,13 @@ def soggiorni():
         data_da = ""
         data_a = ""
         stato_filtro = ""
+        filtro_da_oggi = False
         lista_s = database.filtra_soggiorni()
     else:
         # Di default mostriamo tutti i soggiorni dalla data odierna in poi
         data_da = request.args.get("data_da")
+        # Vero solo se il parametro non era affatto nell'URL (e non quando è presente ma vuoto)
+        filtro_da_oggi = data_da is None
         if data_da is None:
             data_da = date.today().isoformat()
 
@@ -252,6 +269,7 @@ def soggiorni():
                            data_da=data_da,
                            data_a=data_a,
                            stato_filtro=stato_filtro,
+                           filtro_da_oggi=filtro_da_oggi,
                            stati_soggiorno=STATI_SOGGIORNO)
 
 
@@ -280,8 +298,8 @@ def soggiorno_cambia_stato(id_soggiorno, stato):
             return redirect(url_for("soggiorni"))
 
         # Impedisce di fare check-in se un altro soggiorno è già in check-in per questa camera
-        soggiorno_attivo = database.get_soggiorno_oggi_camera(soggiorno['id_camera'])
-        if soggiorno_attivo and soggiorno_attivo['id_soggiorno'] != id_soggiorno and soggiorno_attivo['stato'] == 'check_in':
+        soggiorno_attivo = database.get_soggiorno_attivo_camera(soggiorno['id_camera'])
+        if soggiorno_attivo and soggiorno_attivo['id_soggiorno'] != id_soggiorno:
             flash(f"Impossibile eseguire il check-in: la camera {soggiorno['numero_camera']} è già occupata da un altro soggiorno attivo!", "danger")
             return redirect(url_for("soggiorni"))
 
@@ -356,8 +374,13 @@ def aggiungi_extra_soggiorno(id_soggiorno, codice):
 
 @app.route("/extra/rimuovi/<int:id_extra>/<int:id_soggiorno>")
 def rimuovi_extra_soggiorno(id_extra, id_soggiorno):
-    database.rimuovi_extra(id_extra)
-    flash("Servizio extra rimosso con successo.", "warning")
+    extra = database.get_extra(id_extra, id_soggiorno)
+    if not extra:
+        flash("Servizio extra non trovato per questo soggiorno: impossibile rimuoverlo.", "danger")
+        return redirect(url_for("soggiorno_dettaglio", id_soggiorno=id_soggiorno))
+
+    database.rimuovi_extra(id_extra, id_soggiorno)
+    flash("Servizio extra rimosso con successo.", "success")
     return redirect(url_for("soggiorno_dettaglio", id_soggiorno=id_soggiorno))
 
 
