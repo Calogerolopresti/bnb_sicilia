@@ -12,7 +12,7 @@
         <h1 class="page-title">Soggiorni</h1>
         <p class="page-sub">
             {{ soggiorni|length }} {{ 'risultato' if soggiorni|length == 1 else 'risultati' }}
-            {%- if tutti %} nell'archivio completo{% elif not date_personalizzate and data_da %} da oggi in poi{% endif %}
+            {%- if tutti %} nell'archivio completo{% elif filtro_da_oggi %} da oggi in poi{% endif %}
         </p>
     </div>
     <div class="page-actions">
@@ -22,9 +22,9 @@
 
 <div class="toolbar">
     <nav class="seg" aria-label="Filtri rapidi">
-        <a href="/soggiorni" class="seg-item {% if not tutti and not stato_filtro and not date_personalizzate %}is-active{% endif %}">Da oggi</a>
-        <a href="/soggiorni?stato=prenotato" class="seg-item {% if not tutti and stato_filtro == 'prenotato' %}is-active{% endif %}"><span class="dot dot--prenotato"></span> Prenotati</a>
-        <a href="/soggiorni?stato=check_in" class="seg-item {% if not tutti and stato_filtro == 'check_in' %}is-active{% endif %}"><span class="dot dot--check_in"></span> In struttura</a>
+        <a href="/soggiorni" class="seg-item {% if filtro_da_oggi and not stato_filtro %}is-active{% endif %}">Da oggi</a>
+        <a href="/soggiorni?stato=prenotato&amp;data_da=" class="seg-item {% if not tutti and stato_filtro == 'prenotato' %}is-active{% endif %}"><span class="dot dot--prenotato"></span> Prenotati</a>
+        <a href="/soggiorni?stato=check_in&amp;data_da=" class="seg-item {% if not tutti and stato_filtro == 'check_in' %}is-active{% endif %}"><span class="dot dot--check_in"></span> In struttura</a>
         <a href="/soggiorni?stato=check_out&amp;data_da=" class="seg-item {% if not tutti and stato_filtro == 'check_out' %}is-active{% endif %}"><span class="dot dot--check_out"></span> Terminati</a>
         <a href="/soggiorni?stato=annullato&amp;data_da=" class="seg-item {% if not tutti and stato_filtro == 'annullato' %}is-active{% endif %}"><span class="dot dot--annullato"></span> Annullati</a>
         <a href="/soggiorni?tutti=1" class="seg-item {% if tutti %}is-active{% endif %}"><i class="bi bi-archive"></i> Archivio</a>
