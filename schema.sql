@@ -23,7 +23,7 @@ CREATE TABLE ospiti (
     id_ospite     INT AUTO_INCREMENT PRIMARY KEY,
     nome          VARCHAR(50)  NOT NULL,
     cognome       VARCHAR(50)  NOT NULL,
-    email         VARCHAR(100) NOT NULL,
+    email         VARCHAR(100) NOT NULL UNIQUE,
     telefono      VARCHAR(20),
     nazionalita   VARCHAR(40)
 );
@@ -37,7 +37,8 @@ CREATE TABLE soggiorni (
     data_checkout DATE NOT NULL,
     stato         ENUM('prenotato','check_in','check_out','annullato') NOT NULL DEFAULT 'prenotato',
     FOREIGN KEY (id_camera) REFERENCES camere(id_camera),
-    FOREIGN KEY (id_ospite) REFERENCES ospiti(id_ospite)
+    FOREIGN KEY (id_ospite) REFERENCES ospiti(id_ospite),
+    CONSTRAINT chk_soggiorni_date CHECK (data_checkout > data_checkin)
 );
 
 -- 4. Tabella SERVIZI_EXTRA
