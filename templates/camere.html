@@ -65,12 +65,25 @@
                     <span class="state-opt state-opt--{{ st }} is-current" aria-current="true">{{ label }}</span>
                     {% else %}
                     <a href="/camere/stato/{{ c.id_camera }}/{{ st }}" class="state-opt state-opt--{{ st }}"
-                       {% if st == 'libera' %}data-confirm="Segnare la camera {{ c.numero }} come libera? Un eventuale soggiorno in corso oggi verrà annullato."{% endif %}>{{ label }}</a>
+                       {% if st == 'libera' %}
+                         {% if c.id_camera in camere_con_ospite %}
+                       data-confirm="Segnare la camera {{ c.numero }} come libera? C'è un ospite attualmente in check-in: il suo soggiorno verrà annullato."
+                         {% else %}
+                       data-confirm="Segnare la camera {{ c.numero }} come libera? Un'eventuale prenotazione per oggi verrà annullata."
+                         {% endif %}
+                       {% elif st == 'pulizia' %}
+                       data-confirm="Segnare la camera {{ c.numero }} come in pulizia?"
+                       {% endif %}>{{ label }}</a>
                     {% endif %}
                 {% endfor %}
             </div>
         </div>
     </article>
+    {% else %}
+    <div class="empty">
+        <i class="bi bi-door-closed"></i>
+        <p>Nessuna camera registrata nella struttura.</p>
+    </div>
     {% endfor %}
 </div>
 
