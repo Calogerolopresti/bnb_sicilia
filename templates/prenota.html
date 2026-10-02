@@ -153,6 +153,13 @@
                 <i class="bi bi-check-circle-fill guest-check"></i>
             </button>
         </li>
+        {% else %}
+        <li>
+            <div class="empty">
+                <i class="bi bi-person-x"></i>
+                <p>Nessun ospite registrato. Aggiungine uno con "Nuovo ospite".</p>
+            </div>
+        </li>
         {% endfor %}
     </ul>
     <div class="empty" data-ospiti-vuoto hidden>
@@ -236,10 +243,21 @@
             return new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
         }
 
+        function segnalaCorrezioneCheckout() {
+            checkout.classList.add('is-auto-corretto');
+            clearTimeout(checkout._correzioneTimer);
+            checkout._correzioneTimer = setTimeout(function () {
+                checkout.classList.remove('is-auto-corretto');
+            }, 1200);
+        }
+
         function aggiorna() {
             if (checkin.value) {
                 checkout.min = isoPiuUno(checkin.value);
-                if (!checkout.value || checkout.value <= checkin.value) checkout.value = checkout.min;
+                if (!checkout.value || checkout.value <= checkin.value) {
+                    checkout.value = checkout.min;
+                    segnalaCorrezioneCheckout();
+                }
             }
             var notti = Math.round((Date.parse(checkout.value) - Date.parse(checkin.value)) / GIORNO);
             if (!checkin.value || !checkout.value || !(notti > 0)) {
