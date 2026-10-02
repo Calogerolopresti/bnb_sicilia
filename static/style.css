@@ -105,11 +105,10 @@ a { color: var(--brand); }
     letter-spacing: -0.01em;
 }
 
-.text-2 { color: var(--ink-2); }
 .text-3 { color: var(--ink-3); }
 
 @media (prefers-reduced-motion: reduce) {
-    * { transition: none !important; scroll-behavior: auto !important; }
+    * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
 
 /* ==============================================================================
@@ -732,6 +731,13 @@ a { color: var(--brand); }
     .form-control, .form-select { font-size: .95rem; }
 }
 
+#checkout.is-auto-corretto { animation: campoCorretto 1.1s ease; }
+
+@keyframes campoCorretto {
+    0% { background-color: var(--warn-50); border-color: var(--warn-dot); }
+    100% { background-color: transparent; }
+}
+
 /* ==============================================================================
    DASHBOARD
    ============================================================================== */
@@ -934,7 +940,7 @@ a { color: var(--brand); }
     align-items: center;
     justify-content: center;
     gap: .4rem;
-    height: 32px;
+    min-height: 40px;
     border-radius: 7px;
     color: var(--ink-3);
     font-size: .8rem;
