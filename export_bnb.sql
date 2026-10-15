@@ -24,6 +24,16 @@ SET @@SESSION.SQL_LOG_BIN= 0;
 SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '4a0e7c28-b82f-11f1-9eda-2a5e59a53105:1-328';
 
 --
+-- Current Database: `bnb_sicilia`
+--
+
+/*!40000 DROP DATABASE IF EXISTS `bnb_sicilia`*/;
+
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `bnb_sicilia` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+
+USE `bnb_sicilia`;
+
+--
 -- Table structure for table `camere`
 --
 
@@ -154,4 +164,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-15 17:45:40
+-- Dump completed on 2026-10-15 17:59:43
