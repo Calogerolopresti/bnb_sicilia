@@ -122,15 +122,14 @@ a { color: var(--brand); }
     text-decoration: none;
 }
 
-.brand-mark { flex: none; display: block; }
-
-.brand-text strong {
+.brand-logo {
+    flex: none;
     display: block;
-    font-size: .98rem;
-    font-weight: 700;
-    line-height: 1.15;
-    letter-spacing: -0.01em;
+    height: 40px;
+    width: auto;
 }
+
+.brand-logo--topbar { height: 36px; }
 
 .brand-text small {
     display: block;

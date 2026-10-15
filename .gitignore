@@ -1,5 +1,7 @@
 venv/
+.venv/
 .idea/
 __pycache__/
 *.pyc
 vincoli.md
+.DS_Store
