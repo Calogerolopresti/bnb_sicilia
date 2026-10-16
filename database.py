@@ -1,7 +1,7 @@
 from datetime import date
 import mysql.connector
 
-# CONFIGURAZIONE CONNESSIONE MYSQL
+# parametri di connessione al database mysql locale
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
@@ -11,16 +11,16 @@ DB_CONFIG = {
 
 
 def get_connection():
-    """Apre e restituisce una connessione al database MySQL."""
+    # apre e ci passa la connessione pulita al database mysql
     return mysql.connector.connect(**DB_CONFIG)
 
 
 # ==============================================================================
-# I 3 MODELLI DI QUERY STANDARD
+# i 3 modelli di query standard
 # ==============================================================================
 
 def lista(sql, params=()):
-    """Modello 1: Esegue query SELECT e restituisce una lista di dizionari."""
+    # serve per lanciare le select che restituiscono piu righe sotto forma di lista di dizionari
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
@@ -32,7 +32,7 @@ def lista(sql, params=()):
 
 
 def riga(sql, params=()):
-    """Modello 2: Esegue query SELECT e restituisce una sola riga o None."""
+    # fa una select puntuale e ci restituisce solo una riga come dizionario oppure none se non c'e nulla
     conn = get_connection()
     cursor = conn.cursor(dictionary=True, buffered=True)
     try:
@@ -44,7 +44,7 @@ def riga(sql, params=()):
 
 
 def modifica(sql, params=()):
-    """Modello 3: Esegue INSERT, UPDATE, DELETE con commit."""
+    # serve per insert update e delete con commit immediato e restituisce l'id inserito se c'e
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -57,36 +57,36 @@ def modifica(sql, params=()):
 
 
 # ==============================================================================
-# SEZIONE 1: CAMERE, OSPITI E DASHBOARD
+# sezione 1: camere, ospiti e dashboard
 # ==============================================================================
 
 def lista_camere():
-    """Restituisce la lista di tutte le camere ordinate per numero."""
+    # recupera tutte le camere del bnb ordinate per numero crescente
     return lista("SELECT * FROM camere ORDER BY numero")
 
 
 def get_camera(id_camera):
-    """Restituisce i dettagli di una singola camera tramite ID."""
+    # becca i dettagli di una singola camera usando il suo id
     return riga("SELECT * FROM camere WHERE id_camera = %s", (id_camera,))
 
 
 def aggiorna_stato_camera(id_camera, stato):
-    """Aggiorna lo stato di una camera (libera, occupata, pulizia)."""
+    # cambia lo stato della stanza nel db ad esempio in libera occupata o in pulizia
     return modifica("UPDATE camere SET stato = %s WHERE id_camera = %s", (stato, id_camera))
 
 
 def lista_ospiti():
-    """Restituisce la lista degli ospiti ordinati per cognome."""
+    # tira fuori tutti i clienti registrati ordinati in ordine alfabetico per cognome e nome
     return lista("SELECT * FROM ospiti ORDER BY cognome, nome")
 
 
 def get_ospite(id_ospite):
-    """Restituisce i dettagli di un singolo ospite tramite ID."""
+    # trova la scheda completa di un ospite partendo dal suo id
     return riga("SELECT * FROM ospiti WHERE id_ospite = %s", (id_ospite,))
 
 
 def crea_ospite(nome, cognome, email, telefono, nazionalita):
-    """Inserisce un nuovo ospite nel database e restituisce il suo ID."""
+    # registra un nuovo cliente nel database e ci ritorna subito il nuovo id generato
     sql = """
         INSERT INTO ospiti (nome, cognome, email, telefono, nazionalita)
         VALUES (%s, %s, %s, %s, %s)
@@ -95,22 +95,22 @@ def crea_ospite(nome, cognome, email, telefono, nazionalita):
 
 
 def get_ospite_per_email(email):
-    """Restituisce l'ospite associato a un dato indirizzo email se presente."""
+    # cerca se c'e gia un ospite con questa email per evitare doppioni
     return riga("SELECT * FROM ospiti WHERE email = %s", (email,))
 
 
 def get_ospite_per_telefono(telefono):
-    """Restituisce l'ospite associato a un dato numero di telefono se presente."""
+    # controlla se esiste gia un cliente con questo numero di telefono salvato
     return riga("SELECT * FROM ospiti WHERE telefono = %s", (telefono,))
 
 
 def conta_camere_per_stato():
-    """Conta quante camere ci sono per ciascuno stato."""
+    # conta quante camere sono libere quante occupate e quante in pulizia per i badge della dashboard
     return lista("SELECT stato, COUNT(*) AS totale FROM camere GROUP BY stato")
 
 
 def lista_arrivi_oggi():
-    """Mostra i soggiorni con check-in previsto per oggi e stato 'prenotato'."""
+    # prende tutti i check-in programmati per la giornata di oggi che risultano ancora come prenotati
     sql = """
         SELECT s.*, c.nome AS nome_camera, c.numero AS numero_camera, o.nome AS nome_ospite, o.cognome AS cognome_ospite
         FROM soggiorni s
@@ -123,7 +123,7 @@ def lista_arrivi_oggi():
 
 
 def lista_partenze_oggi():
-    """Mostra i soggiorni con check-out previsto per oggi e stato 'check_in'."""
+    # prende tutti gli ospiti che devono fare il check-out oggi e che hanno ancora lo stato check_in attivo
     sql = """
         SELECT s.*, c.nome AS nome_camera, c.numero AS numero_camera, o.nome AS nome_ospite, o.cognome AS cognome_ospite
         FROM soggiorni s
@@ -136,11 +136,11 @@ def lista_partenze_oggi():
 
 
 # ==============================================================================
-# SEZIONE 2: SOGGIORNI ED EXTRA
+# sezione 2: soggiorni ed extra
 # ==============================================================================
 
 def filtra_soggiorni(data_da=None, data_a=None, stato=None):
-    """Restituisce i soggiorni filtrati per intervallo date e/o stato."""
+    # fa la ricerca dei soggiorni filtrando per data inizio data fine e stato con query dinamica
     sql = """
         SELECT s.*, c.nome AS nome_camera, c.numero AS numero_camera, o.nome AS nome_ospite, o.cognome AS cognome_ospite
         FROM soggiorni s
@@ -167,7 +167,7 @@ def filtra_soggiorni(data_da=None, data_a=None, stato=None):
 
 
 def get_soggiorno(id_soggiorno):
-    """Restituisce il dettaglio di un soggiorno includendo i dati della camera e dell'ospite."""
+    # pesca tutti i dettagli di una singola prenotazione compresi dati dell'ospite e info della camera
     sql = """
         SELECT s.*, c.nome AS nome_camera, c.numero AS numero_camera, c.prezzo_notte, 
                o.nome AS nome_ospite, o.cognome AS cognome_ospite, o.email, o.telefono
@@ -180,8 +180,8 @@ def get_soggiorno(id_soggiorno):
 
 
 def camera_disponibile(id_camera, checkin, checkout):
-    """Controlla se una camera è già prenotata o occupata nelle date selezionate."""
-    # Non è disponibile per date passate o non valide
+    # controlla se una stanza e libera in quelle date senza sovrapporsi ad altri soggiorni attivi
+    # se le date sono sballate o nel passato blocca subito
     if checkout <= checkin or checkin < date.today():
         return False
 
@@ -198,7 +198,7 @@ def camera_disponibile(id_camera, checkin, checkout):
 
 
 def lista_prenotazioni_camera(id_camera):
-    """Restituisce le prenotazioni attive o future per una camera per visualizzarle nel riepilogo."""
+    # prende tutte le prenotazioni attive o future di una stanza specifica per mostrarle nel box laterale
     sql = """
         SELECT s.*, o.nome AS nome_ospite, o.cognome AS cognome_ospite
         FROM soggiorni s
@@ -212,7 +212,7 @@ def lista_prenotazioni_camera(id_camera):
 
 
 def crea_soggiorno(id_camera, id_ospite, checkin, checkout):
-    """Registra un nuovo soggiorno e restituisce l'ID creato."""
+    # inserisce una nuova prenotazione collegando camera e cliente con stato iniziale prenotato
     sql = """
         INSERT INTO soggiorni (id_camera, id_ospite, data_checkin, data_checkout, stato)
         VALUES (%s, %s, %s, %s, 'prenotato')
@@ -221,12 +221,12 @@ def crea_soggiorno(id_camera, id_ospite, checkin, checkout):
 
 
 def aggiorna_stato_soggiorno(id_soggiorno, stato):
-    """Aggiorna lo stato di un soggiorno."""
+    # cambia lo stato della prenotazione ad esempio quando il cliente arriva fa check-in o check-out
     return modifica("UPDATE soggiorni SET stato = %s WHERE id_soggiorno = %s", (stato, id_soggiorno))
 
 
 def get_soggiorno_attivo_camera(id_camera):
-    """Restituisce il soggiorno con ospite attualmente in check-in nella camera, se presente."""
+    # controlla se in quella camera c'e gia qualcuno dentro con check-in fatto
     sql = """
         SELECT * FROM soggiorni
         WHERE id_camera = %s AND stato = 'check_in'
@@ -236,7 +236,7 @@ def get_soggiorno_attivo_camera(id_camera):
 
 
 def get_soggiorno_arrivo_oggi_camera(id_camera):
-    """Restituisce la prenotazione con arrivo previsto oggi nella camera, se presente."""
+    # vede se per quella stanza c'e una prenotazione con arrivo previsto esattamente oggi
     sql = """
         SELECT * FROM soggiorni
         WHERE id_camera = %s AND stato = 'prenotato' AND data_checkin = CURDATE()
@@ -246,13 +246,13 @@ def get_soggiorno_arrivo_oggi_camera(id_camera):
 
 
 def lista_id_camere_con_ospite_presente():
-    """Restituisce gli ID delle camere con un ospite attualmente in check-in."""
+    # restituisce una lista con gli id delle stanze che hanno un ospite fisicamente dentro
     righe = lista("SELECT DISTINCT id_camera FROM soggiorni WHERE stato = 'check_in'")
     return [r['id_camera'] for r in righe]
 
 
 def annulla_soggiorni_camera(id_camera):
-    """Annulla solo il soggiorno di oggi (non le prenotazioni future) quando la camera viene liberata manualmente."""
+    # annulla il soggiorno di oggi se la camera viene liberata a mano dal gestore cosi non blocca il db
     sql = """
         UPDATE soggiorni SET stato = 'annullato'
         WHERE id_camera = %s AND stato IN ('prenotato', 'check_in')
@@ -262,20 +262,20 @@ def annulla_soggiorni_camera(id_camera):
 
 
 def lista_extra_soggiorno(id_soggiorno):
-    """Restituisce i servizi extra aggiunti ad un specifico soggiorno."""
+    # tira fuori tutti i servizi extra addebitati a questo soggiorno
     sql = "SELECT * FROM servizi_extra WHERE id_soggiorno = %s ORDER BY data_servizio"
     return lista(sql, (id_soggiorno,))
 
 
 def totale_extra(id_soggiorno):
-    """Calcola il costo totale degli extra per un soggiorno (usa COALESCE per evitare NULL)."""
+    # somma i prezzi di tutti gli extra del soggiorno gestendo anche il caso in cui non ce ne siano
     sql = "SELECT COALESCE(SUM(prezzo), 0) AS totale FROM servizi_extra WHERE id_soggiorno = %s"
     ris = riga(sql, (id_soggiorno,))
     return ris['totale'] if ris else 0.00
 
 
 def aggiungi_extra(id_soggiorno, nome, prezzo, data):
-    """Aggiunge un servizio extra al soggiorno."""
+    # salva nel db un nuovo extra consumato dall'ospite come tour colazioni o transfer
     sql = """
         INSERT INTO servizi_extra (id_soggiorno, nome_servizio, prezzo, data_servizio)
         VALUES (%s, %s, %s, %s)
@@ -284,22 +284,22 @@ def aggiungi_extra(id_soggiorno, nome, prezzo, data):
 
 
 def get_extra(id_extra, id_soggiorno):
-    """Restituisce un servizio extra solo se appartiene al soggiorno indicato."""
+    # trova un extra specifico verificando che appartenga davvero a quel soggiorno
     sql = "SELECT * FROM servizi_extra WHERE id_extra = %s AND id_soggiorno = %s"
     return riga(sql, (id_extra, id_soggiorno))
 
 
 def rimuovi_extra(id_extra, id_soggiorno):
-    """Elimina un servizio extra, solo se appartiene al soggiorno indicato."""
+    # elimina un servizio extra dal db solo se e associato al soggiorno giusto
     sql = "DELETE FROM servizi_extra WHERE id_extra = %s AND id_soggiorno = %s"
     return modifica(sql, (id_extra, id_soggiorno))
 
 
 # ==============================================================================
-# TEST DELLE FUNZIONI
+# test delle funzioni
 # ==============================================================================
 if __name__ == "__main__":
-    print("--- TEST FUNZIONI DATABASE ---")
-    print("Camere nel sistema:", len(lista_camere()))
-    print("Ospiti nel sistema:", len(lista_ospiti()))
-    print("Soggiorni nel sistema:", len(filtra_soggiorni()))
+    print("--- test funzioni database ---")
+    print("camere nel sistema:", len(lista_camere()))
+    print("ospiti nel sistema:", len(lista_ospiti()))
+    print("soggiorni nel sistema:", len(filtra_soggiorni()))
