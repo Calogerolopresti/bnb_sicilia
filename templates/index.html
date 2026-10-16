@@ -1,7 +1,9 @@
+{# estende lo scheletro comune definito in base.html #}
 {% extends "base.html" %}
 {% block titolo %}Dashboard - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
+{# calcola al volo il totale delle camere e la percentuale di stanze occupate con i dati passati da def index() in app.py #}
 {% set tot = totali.libera + totali.occupata + totali.pulizia %}
 {% set occupazione = ((totali.occupata / tot) * 100)|round|int if tot else 0 %}
 
@@ -10,6 +12,7 @@
         <p class="eyebrow" data-oggi></p>
         <h1 class="page-title">Panoramica di oggi</h1>
         <p class="page-sub">
+            {# arrivi e partenze sono due liste calcolate da database.lista_arrivi_oggi() e lista_partenze_oggi() #}
             {{ arrivi|length }} {{ 'arrivo' if arrivi|length == 1 else 'arrivi' }} e
             {{ partenze|length }} {{ 'partenza' if partenze|length == 1 else 'partenze' }} da gestire.
         </p>
@@ -20,7 +23,7 @@
     </div>
 </header>
 
-<!-- STATO DELLE CAMERE -->
+<!-- stato generale delle camere (dati presi dal dizionario totali inviato da index() in app.py) -->
 <section class="panel mb-3 mb-lg-4">
     <div class="panel-body">
         <div class="occ-head">
@@ -31,6 +34,7 @@
             <div class="occ-rate"><span class="mono">{{ occupazione }}%</span> occupazione</div>
         </div>
 
+        <!-- barra colorata proporzionale allo stato di ogni camera -->
         <div class="occ-bar" role="img" aria-label="{{ totali.libera }} libere, {{ totali.occupata }} occupate, {{ totali.pulizia }} in pulizia">
             {% if tot %}
             {% if totali.libera %}<span class="occ--libera" style="width: {{ (totali.libera / tot * 100)|round(2) }}%"></span>{% endif %}
@@ -39,6 +43,7 @@
             {% endif %}
         </div>
 
+        <!-- card con contatori veloci: cliccandoli vai alla pagina /camere filtrando per stato -->
         <div class="kpi-grid">
             <a href="/camere#libera" class="kpi">
                 <span class="kpi-label"><span class="dot dot--libera"></span> Libere</span>
@@ -60,7 +65,7 @@
 </section>
 
 <div class="row g-3 g-lg-4">
-    <!-- ARRIVI DI OGGI -->
+    <!-- colonna arrivi di oggi: cicla la lista 'arrivi' mandata da index() -->
     <div class="col-lg-6">
         <section class="panel h-100">
             <header class="panel-head">
@@ -79,9 +84,11 @@
                 <li class="task">
                     <span class="avatar">{{ a.nome_ospite[0] }}{{ a.cognome_ospite[0] }}</span>
                     <div class="task-main">
+                        {# apre la rotta soggiorno_dettaglio(id_soggiorno) in app.py #}
                         <a href="/soggiorno/{{ a.id_soggiorno }}" class="task-title">{{ a.nome_ospite }} {{ a.cognome_ospite }}</a>
                         <span class="task-meta">Camera <span class="mono">{{ a.numero_camera }}</span> · {{ a.nome_camera }} · fino al {{ a.data_checkout.strftime('%d/%m') }}</span>
                     </div>
+                    {# bottone rapido: chiama soggiorno_cambia_stato(id_soggiorno, 'check_in') #}
                     <a href="/soggiorni/stato/{{ a.id_soggiorno }}/check_in" class="btn btn-sm btn-ok"><i class="bi bi-check2"></i> Check-in</a>
                 </li>
                 {% endfor %}
@@ -95,7 +102,7 @@
         </section>
     </div>
 
-    <!-- PARTENZE DI OGGI -->
+    <!-- colonna partenze di oggi: cicla la lista 'partenze' mandata da index() -->
     <div class="col-lg-6">
         <section class="panel h-100">
             <header class="panel-head">
@@ -114,9 +121,11 @@
                 <li class="task">
                     <span class="avatar">{{ p.nome_ospite[0] }}{{ p.cognome_ospite[0] }}</span>
                     <div class="task-main">
+                        {# porta al conto del soggiorno tramite la funzione soggiorno_dettaglio() #}
                         <a href="/soggiorno/{{ p.id_soggiorno }}" class="task-title">{{ p.nome_ospite }} {{ p.cognome_ospite }}</a>
                         <span class="task-meta">Camera <span class="mono">{{ p.numero_camera }}</span> · {{ p.nome_camera }} · dal {{ p.data_checkin.strftime('%d/%m') }}</span>
                     </div>
+                    {# bottone rapido: chiama soggiorno_cambia_stato(id_soggiorno, 'check_out') per liberare la camera e metterla in pulizia #}
                     <a href="/soggiorni/stato/{{ p.id_soggiorno }}/check_out" class="btn btn-sm btn-brand"><i class="bi bi-box-arrow-right"></i> Check-out</a>
                 </li>
                 {% endfor %}

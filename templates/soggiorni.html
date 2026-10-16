@@ -1,8 +1,11 @@
+{# estende base.html #}
 {% extends "base.html" %}
 {% block titolo %}Soggiorni - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
+{# dizionario per stampare a schermo testi leggibili per lo stato invece delle chiavi grezze del database #}
 {% set etichette = {'prenotato': 'Prenotato', 'check_in': 'In struttura', 'check_out': 'Terminato', 'annullato': 'Annullato'} %}
+{# controlla se e stato passato il parametro ?tutti=1 nell'url per mostrare l'archivio storico completo #}
 {% set tutti = request.args.get('tutti') == '1' %}
 {% set date_personalizzate = data_a or (data_da and data_da != data_oggi.isoformat()) %}
 
@@ -11,6 +14,7 @@
         <p class="eyebrow">Prenotazioni</p>
         <h1 class="page-title">Soggiorni</h1>
         <p class="page-sub">
+            {# calcola quanti soggiorni sono stati trovati dalla query di database.filtra_soggiorni() #}
             {{ soggiorni|length }} {{ 'risultato' if soggiorni|length == 1 else 'risultati' }}
             {%- if tutti %} nell'archivio completo{% elif filtro_da_oggi %} da oggi in poi{% endif %}
         </p>
@@ -20,6 +24,7 @@
     </div>
 </header>
 
+<!-- barra filtri veloci: mandano richieste get alla rotta /soggiorni in app.py con i parametri di ricerca -->
 <div class="toolbar">
     <nav class="seg" aria-label="Filtri rapidi">
         <a href="/soggiorni" class="seg-item {% if filtro_da_oggi and not stato_filtro %}is-active{% endif %}">Da oggi</a>
@@ -30,6 +35,7 @@
         <a href="/soggiorni?tutti=1" class="seg-item {% if tutti %}is-active{% endif %}"><i class="bi bi-archive"></i> Archivio</a>
     </nav>
 
+    <!-- menu a tendina per filtrare per intervallo di date e stato: invia una get a /soggiorni gestita da soggiorni() in app.py -->
     <details class="filters" {% if date_personalizzate %}open{% endif %}>
         <summary class="btn btn-ghost btn-sm"><i class="bi bi-sliders"></i> Filtri per data</summary>
         <form action="/soggiorni" method="GET" class="filters-body">
@@ -45,6 +51,7 @@
                 <label class="form-label" for="f-stato">Stato</label>
                 <select name="stato" id="f-stato" class="form-select">
                     <option value="">Tutti gli stati</option>
+                    {# stati_soggiorno e la lista definita in app.py passata al template #}
                     {% for st in stati_soggiorno %}
                     <option value="{{ st }}" {% if stato_filtro == st %}selected{% endif %}>{{ etichette[st] }}</option>
                     {% endfor %}
@@ -68,12 +75,15 @@
             <span role="columnheader" class="text-end">Azioni</span>
         </div>
 
+        {# cicla l'elenco dei soggiorni restituito da database.filtra_soggiorni() #}
         {% for s in soggiorni %}
+        {# calcola al volo le notti totali facendo la differenza tra i due oggetti date #}
         {% set notti = (s.data_checkout - s.data_checkin).days %}
         <div class="dlist-row" role="row">
             <div class="cell-guest" role="cell">
                 <span class="avatar">{{ s.nome_ospite[0] }}{{ s.cognome_ospite[0] }}</span>
                 <div>
+                    {# link al dettaglio del conto gestito da def soggiorno_dettaglio() #}
                     <a href="/soggiorno/{{ s.id_soggiorno }}" class="row-title">{{ s.cognome_ospite }} {{ s.nome_ospite }}</a>
                     <span class="row-meta mono">#{{ s.id_soggiorno }}</span>
                 </div>
@@ -96,24 +106,31 @@
                 <span class="chip chip--{{ s.stato }}">{{ etichette[s.stato] }}</span>
             </div>
 
+            <!-- bottoni di azione: chiamano la rotta backend /soggiorni/stato/<id_soggiorno>/<stato> in app.py -->
             <div class="cell-actions" role="cell">
+                {# se la prenotazione parte oggi possiamo fare check-in subito #}
                 {% if s.stato == 'prenotato' and s.data_checkin == data_oggi %}
                     <a href="/soggiorni/stato/{{ s.id_soggiorno }}/check_in" class="btn btn-sm btn-ok"><i class="bi bi-box-arrow-in-right"></i> Check-in</a>
+                {# se la data e futura avvisa quanti giorni mancano ed evita check-in anticipati #}
                 {% elif s.stato == 'prenotato' and s.data_checkin > data_oggi %}
                     {% set giorni = (s.data_checkin - data_oggi).days %}
                     <span class="hint"><i class="bi bi-clock"></i> Arrivo {{ 'domani' if giorni == 1 else 'tra ' ~ giorni ~ ' giorni' }}</span>
+                {# se la data era nel passato ma lo stato e ancora prenotato #}
                 {% elif s.stato == 'prenotato' %}
                     <span class="hint hint--warn"><i class="bi bi-exclamation-circle"></i> Arrivo mancato</span>
+                {# se e gia dentro la camera mostra il tasto per il check-out finale #}
                 {% elif s.stato == 'check_in' %}
                     <a href="/soggiorni/stato/{{ s.id_soggiorno }}/check_out" class="btn btn-sm btn-brand"><i class="bi bi-box-arrow-right"></i> Check-out</a>
                 {% endif %}
 
+                {# se e solo prenotato possiamo annullarlo richiamando soggiorno_cambia_stato(id, 'annullato') #}
                 {% if s.stato == 'prenotato' %}
                     <a href="/soggiorni/stato/{{ s.id_soggiorno }}/annullato" class="btn btn-sm btn-ghost-danger"
                        data-confirm="Annullare la prenotazione di {{ s.nome_ospite }} {{ s.cognome_ospite }}?"
                        title="Annulla prenotazione" aria-label="Annulla prenotazione"><i class="bi bi-x-lg"></i><span class="d-lg-none">Annulla</span></a>
                 {% endif %}
 
+                {# icona scontrino per andare al dettaglio e aggiungere extra #}
                 <a href="/soggiorno/{{ s.id_soggiorno }}" class="btn btn-sm btn-ghost" title="Apri il conto" aria-label="Apri il conto"><i class="bi bi-receipt"></i><span class="d-lg-none">Conto</span></a>
             </div>
         </div>

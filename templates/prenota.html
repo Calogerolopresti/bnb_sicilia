@@ -1,3 +1,4 @@
+{# eredita da base.html #}
 {% extends "base.html" %}
 {% block titolo %}Prenota Camera - B&B Sicilia{% endblock %}
 
@@ -10,6 +11,7 @@
 
 <header class="page-header">
     <div>
+        {# camera e il dizionario passato dalla rotta prenota(id_camera) in app.py con i dettagli della stanza #}
         <h1 class="page-title">Prenota la camera <span class="mono">{{ camera.numero }}</span></h1>
         <p class="page-sub">{{ camera.nome }} · {{ camera.tipo }} · {{ camera.posti }} posti</p>
     </div>
@@ -19,11 +21,11 @@
 </header>
 
 <div class="row g-3 g-lg-4 align-items-start">
-    <!-- FORM PRENOTAZIONE -->
+    <!-- form per salvare la prenotazione: fa una post a /prenota/<id_camera> gestita da prenota() in app.py -->
     <div class="col-lg-8">
         <form action="/prenota/{{ camera.id_camera }}" method="POST" class="panel">
             <div class="panel-body">
-                <!-- PASSO 1: OSPITE -->
+                <!-- passo 1: selezione dell'ospite -->
                 <section class="step">
                     <div class="step-head">
                         <span class="step-num">1</span>
@@ -35,14 +37,17 @@
                     <div class="step-body">
                         <label class="form-label" for="id_ospite">Cliente *</label>
                         <div class="d-flex flex-column flex-sm-row gap-2">
+                            {# menu a tendina che cicla la lista 'ospiti' caricata da database.lista_ospiti() #}
                             <select name="id_ospite" id="id_ospite" class="form-select" required>
                                 <option value="">Seleziona un ospite…</option>
                                 {% for o in ospiti %}
+                                {# seleziona in automatico l'ospite se siamo appena tornati dalla creazione di uno nuovo #}
                                 <option value="{{ o.id_ospite }}" {% if id_ospite_selezionato == o.id_ospite %}selected{% endif %}>
                                     {{ o.cognome }} {{ o.nome }}{% if o.nazionalita %} · {{ o.nazionalita }}{% endif %}
                                 </option>
                                 {% endfor %}
                             </select>
+                            <!-- pulsante che fa apparire il modale bootstrap per creare un nuovo ospite al volo -->
                             <button type="button" class="btn btn-ghost flex-shrink-0" data-bs-toggle="modal" data-bs-target="#modalNuovoOspite">
                                 <i class="bi bi-person-plus"></i> Nuovo ospite
                             </button>
@@ -50,7 +55,7 @@
                     </div>
                 </section>
 
-                <!-- PASSO 2: DATE -->
+                <!-- passo 2: scelta delle date del soggiorno -->
                 <section class="step">
                     <div class="step-head">
                         <span class="step-num">2</span>
@@ -63,6 +68,7 @@
                         <div class="row g-2 g-sm-3">
                             <div class="col-sm-6">
                                 <label class="form-label" for="checkin">Check-in *</label>
+                                {# le date minime e di default arrivano gia formattate iso da app.py #}
                                 <input type="date" name="checkin" id="checkin" class="form-control" value="{{ data_oggi_iso }}" min="{{ data_oggi_iso }}" required>
                             </div>
                             <div class="col-sm-6">
@@ -71,6 +77,7 @@
                             </div>
                         </div>
 
+                        {# se ci sono prenotazioni future per questa stanza le elenca qui per comodita dell'operatore #}
                         {% if prenotazioni_attive %}
                         <div class="callout callout--warn mt-3">
                             <i class="bi bi-calendar-x"></i>
@@ -97,12 +104,13 @@
             <div class="panel-foot">
                 <p class="hint mb-0 d-none d-lg-inline-flex"><i class="bi bi-shield-check"></i> La disponibilità viene verificata alla conferma.</p>
                 <p class="foot-total d-lg-none mb-0">Totale <strong class="mono" data-totale>—</strong> <span class="text-3" data-notti-breve></span></p>
+                <!-- invia i dati del form in post alla funzione prenota() in app.py -->
                 <button type="submit" class="btn btn-brand"><i class="bi bi-check2"></i> Conferma prenotazione</button>
             </div>
         </form>
     </div>
 
-    <!-- RIEPILOGO -->
+    <!-- riquadro laterale con il preventivo calcolato in tempo reale da javascript -->
     <div class="col-lg-4">
         <aside class="panel summary" data-prezzo="{{ camera.prezzo_notte }}">
             <div class="panel-body">
@@ -123,7 +131,7 @@
     </div>
 </div>
 
-<!-- ELENCO OSPITI -->
+<!-- elenco con ricerca live dei clienti registrati: cliccandone uno si seleziona nel form sopra -->
 <section class="panel mt-3 mt-lg-4">
     <header class="panel-head">
         <div>
@@ -138,6 +146,7 @@
     <ul class="guest-list">
         {% for o in ospiti %}
         <li>
+            <!-- cliccando questo pulsante javascript aggiorna il campo select #id_ospite del form principale -->
             <button type="button" class="guest {% if id_ospite_selezionato == o.id_ospite %}is-selected{% endif %}"
                     data-id-ospite="{{ o.id_ospite }}"
                     data-testo="{{ (o.cognome ~ ' ' ~ o.nome ~ ' ' ~ o.email ~ ' ' ~ (o.telefono or ''))|lower }}">
@@ -168,7 +177,7 @@
     </div>
 </section>
 
-<!-- MODALE BOOTSTRAP PER AGGIUNGERE UN NUOVO CLIENTE -->
+<!-- modale bootstrap per inserire un nuovo cliente: manda una post a /ospiti/nuovo/<id_camera> gestita da nuovo_ospite() in app.py -->
 <div class="modal fade" id="modalNuovoOspite" tabindex="-1" aria-labelledby="modalNuovoOspiteLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
         <div class="modal-content">
@@ -207,6 +216,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Annulla</button>
+                    <!-- salva l'ospite nel db e ricarica la pagina selezionandolo subito -->
                     <button type="submit" class="btn btn-brand"><i class="bi bi-person-check"></i> Salva ospite</button>
                 </div>
             </form>
@@ -217,8 +227,9 @@
 
 {% block script %}
 <script>
+    // logica lato client: calcolo dinamico delle notti/prezzo e filtro rapido degli ospiti
     (function () {
-        // --- Riepilogo prezzo in tempo reale ---
+        // calcolo live del preventivo in base al prezzo della camera passato dal backend in data-prezzo
         var prezzo = parseFloat(document.querySelector('[data-prezzo]').dataset.prezzo);
         var checkin = document.getElementById('checkin');
         var checkout = document.getElementById('checkout');
@@ -275,7 +286,7 @@
         checkout.addEventListener('change', aggiorna);
         aggiorna();
 
-        // --- Selezione e ricerca ospiti ---
+        // sincronizza la lista ospiti con il menu a tendina e filtra istantaneamente mentre digiti
         var select = document.getElementById('id_ospite');
         var ospiti = document.querySelectorAll('[data-id-ospite]');
         var cerca = document.querySelector('[data-cerca-ospiti]');

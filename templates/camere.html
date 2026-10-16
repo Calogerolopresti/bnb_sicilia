@@ -1,7 +1,9 @@
+{# eredita la struttura comune da base.html #}
 {% extends "base.html" %}
 {% block titolo %}Camere - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
+{# mappa i valori del database ('libera', 'occupata', 'pulizia') in etichette carine da mostrare all'utente #}
 {% set etichette = {'libera': 'Libera', 'occupata': 'Occupata', 'pulizia': 'In pulizia'} %}
 
 <header class="page-header">
@@ -12,6 +14,7 @@
     </div>
 </header>
 
+<!-- barra dei filtri: javascript filtra a video le camere senza ricaricare la pagina -->
 <div class="toolbar">
     <div class="seg" aria-label="Filtra le camere per stato">
         <button type="button" class="seg-item is-active" data-filtro="tutte" aria-pressed="true">
@@ -20,12 +23,14 @@
         {% for st in ['libera', 'occupata', 'pulizia'] %}
         <button type="button" class="seg-item" data-filtro="{{ st }}" aria-pressed="false">
             <span class="dot dot--{{ st }}"></span> {{ etichette[st] }}
+            {# conta quante camere hanno questo stato filtrando la lista 'camere' passata da def camere() in app.py #}
             <span class="seg-count">{{ camere|selectattr('stato', 'equalto', st)|list|length }}</span>
         </button>
         {% endfor %}
     </div>
 </div>
 
+<!-- griglia con tutte le stanze: cicla la lista 'camere' passata dalla rotta flask /camere -->
 <div class="room-grid">
     {% for c in camere %}
     <article class="room" data-stato="{{ c.stato }}">
@@ -52,18 +57,22 @@
             </div>
         </dl>
 
+        {# porta alla pagina /prenota/<id_camera> gestita dalla funzione prenota() in app.py #}
         <a href="/prenota/{{ c.id_camera }}" class="btn btn-brand w-100">
             <i class="bi bi-calendar-plus"></i>
             {% if c.stato == 'libera' %}Prenota{% else %}Prenota per altre date{% endif %}
         </a>
 
+        <!-- selettore rapido di stato: cliccando invia una get alla funzione camere_cambia_stato(id_camera, stato) -->
         <div class="state-switch">
             <span class="state-label">Cambia stato</span>
             <div class="state-options" role="group" aria-label="Stato della camera {{ c.numero }}">
                 {% for st, label in [('libera', 'Libera'), ('occupata', 'Occupata'), ('pulizia', 'Pulizia')] %}
                     {% if c.stato == st %}
+                    {# se e gia lo stato attuale della camera non e cliccabile #}
                     <span class="state-opt state-opt--{{ st }} is-current" aria-current="true">{{ label }}</span>
                     {% else %}
+                    {# rotta backend: /camere/stato/<id_camera>/<stato> in app.py con messaggio di conferma javascript #}
                     <a href="/camere/stato/{{ c.id_camera }}/{{ st }}" class="state-opt state-opt--{{ st }}"
                        {% if st == 'libera' %}
                          {% if c.id_camera in camere_con_ospite %}
@@ -87,6 +96,7 @@
     {% endfor %}
 </div>
 
+<!-- box che spunta se non ci sono camere per il filtro selezionato -->
 <div class="panel empty" data-vuoto hidden>
     <i class="bi bi-door-closed"></i>
     <p>Nessuna camera in questo stato.</p>
@@ -95,6 +105,7 @@
 
 {% block script %}
 <script>
+    // script lato client: gestisce i bottoni filtro mostrando/nascondendo le card delle camere senza reload
     (function () {
         var pulsanti = document.querySelectorAll('[data-filtro]');
         var camere = document.querySelectorAll('.room[data-stato]');
@@ -122,6 +133,7 @@
             });
         });
 
+        // se arrivi con un hash nell'url (tipo #libera dalla dashboard) filtra in automatico all'avvio
         var iniziale = location.hash.slice(1);
         if (['libera', 'occupata', 'pulizia'].indexOf(iniziale) !== -1) filtra(iniziale);
     })();

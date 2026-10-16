@@ -1,7 +1,9 @@
+{# estende il layout base di base.html #}
 {% extends "base.html" %}
 {% block titolo %}Dettaglio Conto - B&B Sicilia{% endblock %}
 
 {% block contenuto %}
+{# dizionario con le descrizioni amichevoli degli stati per i badge #}
 {% set etichette = {'prenotato': 'Prenotato', 'check_in': 'In struttura', 'check_out': 'Terminato', 'annullato': 'Annullato'} %}
 
 <nav class="crumbs" aria-label="Percorso">
@@ -10,6 +12,7 @@
     <span class="mono">#{{ soggiorno.id_soggiorno }}</span>
 </nav>
 
+<!-- testata con dati ospite passati da def soggiorno_dettaglio(id_soggiorno) in app.py -->
 <header class="page-header">
     <div class="d-flex align-items-center gap-3">
         <span class="avatar avatar--lg">{{ soggiorno.nome_ospite[0] }}{{ soggiorno.cognome_ospite[0] }}</span>
@@ -20,13 +23,14 @@
     </div>
     <div class="page-actions">
         <span class="chip chip--{{ soggiorno.stato }}">{{ etichette[soggiorno.stato] }}</span>
+        <!-- stampa la pagina direttamente con il comando nativo del browser -->
         <button type="button" class="btn btn-ghost" onclick="window.print()"><i class="bi bi-printer"></i> Stampa conto</button>
     </div>
 </header>
 
 <div class="row g-3 g-lg-4 align-items-start">
     <div class="col-lg-8 d-flex flex-column gap-3 gap-lg-4">
-        <!-- DETTAGLI SOGGIORNO -->
+        <!-- dettagli del soggiorno: date di arrivo/partenza, recapiti dell'ospite e prezzo a notte -->
         <section class="panel">
             <div class="panel-body">
                 <div class="stay">
@@ -66,7 +70,7 @@
             </div>
         </section>
 
-        <!-- SERVIZI EXTRA -->
+        <!-- sezione servizi extra: mostra la lista degli addebiti recuperati da database.lista_extra_soggiorno() -->
         <section class="panel">
             <header class="panel-head">
                 <div>
@@ -85,6 +89,7 @@
                         <span class="text-3 small">{{ ex.data_servizio.strftime('%d/%m/%Y') }}</span>
                     </div>
                     <span class="mono fw-semibold">€ {{ "%.2f"|format(ex.prezzo) }}</span>
+                    {# cancella l'extra richiamando rimuovi_extra_soggiorno(id_extra, id_soggiorno) in app.py #}
                     <a href="/extra/rimuovi/{{ ex.id_extra }}/{{ soggiorno.id_soggiorno }}" class="btn btn-sm btn-icon btn-ghost-danger"
                        data-confirm="Rimuovere «{{ ex.nome_servizio }}» dal conto?"
                        title="Rimuovi" aria-label="Rimuovi {{ ex.nome_servizio }}"><i class="bi bi-trash3"></i></a>
@@ -98,10 +103,12 @@
             </div>
             {% endif %}
 
+            <!-- catalogo degli extra disponibili: cicla il dizionario catalogo inviato da app.py -->
             <div class="catalog">
                 <p class="eyebrow mb-2">Aggiungi dal catalogo</p>
                 <div class="catalog-grid">
                     {% for cod, item in catalogo.items() %}
+                    {# cliccando aggiunge l'extra richiamando aggiungi_extra_soggiorno(id_soggiorno, codice) in app.py #}
                     <a href="/soggiorno/{{ soggiorno.id_soggiorno }}/extra/{{ cod }}" class="catalog-tile">
                         <span class="catalog-name">{{ item[0] }}</span>
                         <span class="catalog-price mono">€ {{ "%.2f"|format(item[1]) }}</span>
@@ -113,7 +120,7 @@
         </section>
     </div>
 
-    <!-- CONTO -->
+    <!-- riepilogo conto finale: mostra i totali calcolati nel backend in def soggiorno_dettaglio() -->
     <div class="col-lg-4">
         <aside class="panel bill">
             <div class="panel-body">
